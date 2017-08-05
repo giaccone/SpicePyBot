@@ -1,3 +1,8 @@
+# ======================
+# general python modules
+# ======================
+import time
+
 # ===================
 # module from SpicePy
 # ===================
@@ -54,7 +59,7 @@ def sove_dc_network(fname):
     return mex
 
 # ==========================
-# welcome message
+# start - welcome message
 # ==========================
 def start(bot, update):
     bot.send_message(chat_id=update.message.chat_id,
@@ -84,10 +89,19 @@ def catch_netlist(bot, update):
 
 dispatcher.add_handler(MessageHandler(Filters.document, catch_netlist))
 
+# ==========================
+# help - short guide
+# ==========================
+def help(bot, update):
+    bot.send_message(chat_id=update.message.chat_id,
+                     text="*Very short guide*.\n\n1)upload a file with the netlist (don't know what a netlist is? Run `/tutorial` in the bot)\n2) enjoy\n\n\n*If you need a more detailed guide*\nRun `/tutorial` in the bot",
+                     parse_mode=telegram.ParseMode.MARKDOWN)
 
+help_handler = CommandHandler('help', help)
+dispatcher.add_handler(help_handler)
 
 # =========================================
-# Tutorial
+# Tutorial - learn to use the bot
 # =========================================
 def tutorial(bot, update):
     fname = "./resources/network.net"
@@ -101,12 +115,35 @@ def tutorial(bot, update):
             mex += line
     bot.send_message(chat_id=update.message.chat_id, text=mex)
 
-    mex = 'Instruction to use the bot goes here (TO DO...)'
-    bot.send_message(chat_id=update.message.chat_id, text=mex)
+    time.sleep(5)
 
-    mex = sove_dc_network(fname)
-    mex = 'This is the circuit solution:\n\n' + mex
+    mex = 'Here it is your file...'
     bot.send_message(chat_id=update.message.chat_id, text=mex)
+    bot.send_photo(chat_id=update.message.chat_id, photo=open('./resources/tutorial1.png', 'rb'))
+
+    mex = 'and its concent...'
+    bot.send_message(chat_id=update.message.chat_id, text=mex)
+    bot.send_photo(chat_id=update.message.chat_id, photo=open('./resources/tutorial2.png', 'rb'))
+
+    time.sleep(5)
+
+    mex = 'tap on the upload button...'
+    bot.send_message(chat_id=update.message.chat_id, text=mex)
+    bot.send_photo(chat_id=update.message.chat_id, photo=open('./resources/tutorial3.png', 'rb'))
+
+    time.sleep(5)
+
+    mex = 'tap on your file...'
+    bot.send_message(chat_id=update.message.chat_id, text=mex)
+    bot.send_photo(chat_id=update.message.chat_id, photo=open('./resources/tutorial4.png', 'rb'))
+
+    mex = 'check the correctenss of the netlist and enjoyt the results...'
+    bot.send_message(chat_id=update.message.chat_id, text=mex)
+    bot.send_photo(chat_id=update.message.chat_id, photo=open('./resources/tutorial5.png', 'rb'))
+
+    #mex = sove_dc_network(fname)
+    #mex = 'This is the circuit solution:\n\n' + mex
+    #bot.send_message(chat_id=update.message.chat_id, text=mex)
 
 tutorial_handler = CommandHandler('tutorial', tutorial)
 dispatcher.add_handler(tutorial_handler)
