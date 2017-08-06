@@ -62,7 +62,7 @@ def sove_dc_network(fname):
 # ==========================
 def start(bot, update):
     bot.send_message(chat_id=update.message.chat_id,
-                     text="*Welcome to SpycePyBot*.\n\nIt allows you to solve linear networs\n(So far, only resistive netrork).\n\nRun the code:\n`/tutorial`\n to lean how to use the bot ",
+                     text="*Welcome to SpycePyBot*.\n\nIt allows you to solve linear networs\n(So far, only resistive netrork).\n\nRun the code:\n`/help`\n for the short guide.\n\nRun the code:\n`/tutorial`\n to lean how to use the bot.",
                      parse_mode=telegram.ParseMode.MARKDOWN)
 
 start_handler = CommandHandler('start', start)
@@ -154,7 +154,7 @@ dispatcher.add_handler(tutorial_handler)
 # reply - catch any message and reply to it
 # =========================================
 def reply(bot, update):
-    update.message.reply_text("Come on! We are here to solve circuit and not to chat! 😀\nPlease provide me a netlist.", quote=True)
+    update.message.reply_text("Come on! We are here to solve circuits and not to chat! 😀\nPlease provide me a netlist.", quote=True)
 
 reply_handler = MessageHandler(Filters.text, reply)
 dispatcher.add_handler(reply_handler)
