@@ -114,7 +114,8 @@ def tutorial(bot, update):
             mex += line
     bot.send_message(chat_id=update.message.chat_id, text=mex)
 
-    time.sleep(5)
+    bot.send_chat_action(chat_id=update.message.chat_id, action=telegram.ChatAction.TYPING)
+    time.sleep(8)
 
     mex = 'Here it is your file...'
     bot.send_message(chat_id=update.message.chat_id, text=mex)
@@ -124,13 +125,15 @@ def tutorial(bot, update):
     bot.send_message(chat_id=update.message.chat_id, text=mex)
     bot.send_photo(chat_id=update.message.chat_id, photo=open('./resources/tutorial2.png', 'rb'))
 
-    time.sleep(5)
+    bot.send_chat_action(chat_id=update.message.chat_id, action=telegram.ChatAction.TYPING)
+    time.sleep(8)
 
     mex = 'tap on the upload button...'
     bot.send_message(chat_id=update.message.chat_id, text=mex)
     bot.send_photo(chat_id=update.message.chat_id, photo=open('./resources/tutorial3.png', 'rb'))
 
-    time.sleep(5)
+    bot.send_chat_action(chat_id=update.message.chat_id, action=telegram.ChatAction.TYPING)
+    time.sleep(8)
 
     mex = 'tap on your file...'
     bot.send_message(chat_id=update.message.chat_id, text=mex)
@@ -146,6 +149,15 @@ def tutorial(bot, update):
 
 tutorial_handler = CommandHandler('tutorial', tutorial)
 dispatcher.add_handler(tutorial_handler)
+
+# =========================================
+# reply - catch any message and reply to it
+# =========================================
+def reply(bot, update):
+    update.message.reply_text("Come on! We are here to solve circuit and not to chat! 😀\nPlease provide me a netlist.", quote=True)
+
+reply_handler = MessageHandler(Filters.text, reply)
+dispatcher.add_handler(reply_handler)
 
 # =========================================
 # unknown - catch any wrong command
