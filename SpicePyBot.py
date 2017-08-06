@@ -19,15 +19,14 @@ import netprintbot as prn
 # ==========================
 # python-temegam-bot modules
 # ==========================
-from telegram.ext import Updater, MessageHandler, Filters
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 import telegram as telegram
-from telegram.ext import CommandHandler
 
 # ==========================
 # TOKEN section
 # ==========================
-# The following function reads the TOKEN from a filename
-# it is not incuded in the Repo for obvious reasons
+# The following function reads the TOKEN from a file.
+# This file is not incuded in the github-repo for obvious reasons
 def read_token(filename):
     with open(filename) as f:
         token = f.readline().replace('\n','')
@@ -148,8 +147,18 @@ def tutorial(bot, update):
 tutorial_handler = CommandHandler('tutorial', tutorial)
 dispatcher.add_handler(tutorial_handler)
 
+# =========================================
+# unknown - catch any wrong command
+# =========================================
+def unknown(bot, update):
+    bot.send_message(chat_id=update.message.chat_id, text="Sorry, I didn't understand that command.")
 
+unknown_handler = MessageHandler(Filters.command, unknown)
+dispatcher.add_handler(unknown_handler)
+
+# =========================================
 # Start the Bot
+# =========================================
 updater.start_polling()
 
 # Block until you press Ctrl-C or the process receives SIGINT, SIGTERM or
