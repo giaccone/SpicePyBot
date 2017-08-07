@@ -37,6 +37,12 @@ fname = 'SpicePyBot_token.txt'
 updater = Updater(token=read_token(fname))
 dispatcher = updater.dispatcher
 
+# ===============================
+# global variables initialization
+# ===============================
+netlist_writing  = 0
+fid = None
+
 # ==========================
 # standard logging
 # ==========================
@@ -121,7 +127,7 @@ def tutorial(bot, update):
     bot.send_message(chat_id=update.message.chat_id, text=mex)
     bot.send_photo(chat_id=update.message.chat_id, photo=open('./resources/tutorial1.png', 'rb'))
 
-    mex = 'and its concent...'
+    mex = 'and its content...'
     bot.send_message(chat_id=update.message.chat_id, text=mex)
     bot.send_photo(chat_id=update.message.chat_id, photo=open('./resources/tutorial2.png', 'rb'))
 
@@ -150,11 +156,45 @@ def tutorial(bot, update):
 tutorial_handler = CommandHandler('tutorial', tutorial)
 dispatcher.add_handler(tutorial_handler)
 
+
+# =========================================
+# netlist - write te netlist in the BOT
+# =========================================
+def netlist(bot, update):
+    global netlist_writing
+    global fid
+    bot.send_message(chat_id=update.message.chat_id, text="Please write the netlist component by componets:")
+    netlist_writing = 1
+    fid = open("netlist" + str(update.message.chat_id) + ".txt", "w")
+
+netlist_handler = CommandHandler('netlist', netlist)
+dispatcher.add_handler(netlist_handler)
+
+
 # =========================================
 # reply - catch any message and reply to it
 # =========================================
 def reply(bot, update):
-    update.message.reply_text("Come on! We are here to solve circuits and not to chat! 😀\nPlease provide me a netlist.", quote=True)
+    global netlist_writing
+    if netlist_writing:
+        if (update.message.text).lower() != 'end':
+            fid.write(str(update.message.text) + '\n')
+        else:
+            fid.close()
+            bot.send_message(chat_id=update.message.chat_id, text="end of netlist.\n\n")
+
+            fname = "netlist" + str(update.message.chat_id) + ".txt"
+            mex = 'This is your netlist:\n\n'
+            with open(fname) as f:
+                for line in f:
+                    mex += line
+            bot.send_message(chat_id=update.message.chat_id, text=mex)
+
+            mex = sove_dc_network(fname)
+            mex = 'This is the circuit solution:\n\n' + mex
+            bot.send_message(chat_id=update.message.chat_id, text=mex)
+    else:
+        update.message.reply_text("Come on! We are here to solve circuits and not to chat! 😀\nPlease provide me a netlist.", quote=True)
 
 reply_handler = MessageHandler(Filters.text, reply)
 dispatcher.add_handler(reply_handler)
