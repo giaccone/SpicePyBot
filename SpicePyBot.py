@@ -181,7 +181,7 @@ def reply(bot, update):
             fid.write(str(update.message.text) + '\n')
         else:
             fid.close()
-            bot.send_message(chat_id=update.message.chat_id, text="end of netlist.\n\n")
+            netlist_writing = 0
 
             fname = "netlist" + str(update.message.chat_id) + ".txt"
             mex = 'This is your netlist:\n\n'
