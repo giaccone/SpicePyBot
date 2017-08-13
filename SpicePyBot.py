@@ -163,7 +163,7 @@ dispatcher.add_handler(tutorial_handler)
 def netlist(bot, update):
     global netlist_writing
     global fid
-    bot.send_message(chat_id=update.message.chat_id, text="Please write the netlist component by componets:")
+    bot.send_message(chat_id=update.message.chat_id, text="Please write the netlist\nAll in one message.")
     netlist_writing = 1
     fid = open("netlist" + str(update.message.chat_id) + ".txt", "w")
 
@@ -177,22 +177,23 @@ dispatcher.add_handler(netlist_handler)
 def reply(bot, update):
     global netlist_writing
     if netlist_writing:
-        if (update.message.text).lower() != 'end':
-            fid.write(str(update.message.text) + '\n')
-        else:
-            fid.close()
-            netlist_writing = 0
+        # write the netlist
+        fid.write(str(update.message.text) + '\n')
+        fid.close()
 
-            fname = "netlist" + str(update.message.chat_id) + ".txt"
-            mex = 'This is your netlist:\n\n'
-            with open(fname) as f:
-                for line in f:
-                    mex += line
-            bot.send_message(chat_id=update.message.chat_id, text=mex)
+        # update global variable
+        netlist_writing = 0
 
-            mex = sove_dc_network(fname)
-            mex = 'This is the circuit solution:\n\n' + mex
-            bot.send_message(chat_id=update.message.chat_id, text=mex)
+        fname = "netlist" + str(update.message.chat_id) + ".txt"
+        mex = 'This is your netlist:\n\n'
+        with open(fname) as f:
+            for line in f:
+                mex += line
+        bot.send_message(chat_id=update.message.chat_id, text=mex)
+
+        mex = sove_dc_network(fname)
+        mex = 'This is the circuit solution:\n\n' + mex
+        bot.send_message(chat_id=update.message.chat_id, text=mex)
     else:
         update.message.reply_text("Come on! We are here to solve circuits and not to chat! 😀\nPlease provide me a netlist.", quote=True)
 
