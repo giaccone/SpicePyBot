@@ -7,14 +7,7 @@ import time
 # module from SpicePy
 # ===================
 import netlist as ntl
-import netsolve as slv
-import netpost as pst
-import netprint as prn
-
-# ===================
-# module of SpicePyBot
-# ===================
-import netprintbot as prn
+from netsolve import net_solve
 
 # ==========================
 # python-temegam-bot modules
@@ -42,6 +35,7 @@ dispatcher = updater.dispatcher
 # ===============================
 netlist_writing  = 0
 fid = None
+polar = False
 
 # ==========================
 # standard logging
@@ -53,13 +47,23 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 # ==========================
 # usefult functions
 # ==========================
-def sove_dc_network(fname):
-    net = ntl.Network(fname)
-    slv.dc_solve(net)
-    pst.branch_voltage(net)
-    pst.branch_current(net)
+def get_solution(fname, update):
+    global polar
 
-    mex = prn.print_branch_quantity(net)
+    net = ntl.Network(fname)
+    net_solve(net)
+    net.branch_voltage()
+    net.branch_current()
+
+    if net.analysis[0] == '.ac':
+        fname = str(update.message.chat_id) + '.cnf'
+        fid = open(fname, 'r')
+        flag = fid.readline()
+        polar = flag == 'True'
+    else:
+        polar = False
+
+    mex = net.print(polar=polar, message=True).replace('==','=')
 
     return mex
 
@@ -70,6 +74,11 @@ def start(bot, update):
     bot.send_message(chat_id=update.message.chat_id,
                      text="*Welcome to SpycePyBot*.\n\nIt allows you to solve linear networs\n(So far, only resistive netrork).\n\nRun the code:\n`/help`\n for the short guide.\n\nRun the code:\n`/tutorial`\n to lean how to use the bot.",
                      parse_mode=telegram.ParseMode.MARKDOWN)
+    fname = str(update.message.chat_id) + '.cnf'
+    fid = open(fname, 'w')
+    fid.write('False')
+    fid.close()
+
 
 start_handler = CommandHandler('start', start)
 dispatcher.add_handler(start_handler)
@@ -87,7 +96,7 @@ def catch_netlist(bot, update):
             mex += line
     bot.send_message(chat_id=update.message.chat_id, text=mex)
 
-    mex = sove_dc_network(fname)
+    mex = get_solution(fname, update)
     mex = 'This is the circuit solution:\n\n' + mex
 
     bot.send_message(chat_id=update.message.chat_id, text=mex)
@@ -149,7 +158,7 @@ def tutorial(bot, update):
     bot.send_message(chat_id=update.message.chat_id, text=mex)
     bot.send_photo(chat_id=update.message.chat_id, photo=open('./resources/tutorial5.png', 'rb'))
 
-    #mex = sove_dc_network(fname)
+    #mex = get_solution(fname)
     #mex = 'This is the circuit solution:\n\n' + mex
     #bot.send_message(chat_id=update.message.chat_id, text=mex)
 
@@ -191,7 +200,7 @@ def reply(bot, update):
                 mex += line
         bot.send_message(chat_id=update.message.chat_id, text=mex)
 
-        mex = sove_dc_network(fname)
+        mex = get_solution(fname, update)
         mex = 'This is the circuit solution:\n\n' + mex
         bot.send_message(chat_id=update.message.chat_id, text=mex)
     else:
@@ -199,6 +208,30 @@ def reply(bot, update):
 
 reply_handler = MessageHandler(Filters.text, reply)
 dispatcher.add_handler(reply_handler)
+
+# =========================================
+# unknown - catch any wrong command
+# =========================================
+def complex_repr(bot, update):
+    global polar
+    if polar is True:
+        polar = False
+        bot.send_message(chat_id=update.message.chat_id, text="Switched to cartesian representetion")
+        fname = str(update.message.chat_id) + '.cnf'
+        fid = open(fname, 'w')
+        fid.write('False')
+        fid.close()
+    else:
+        polar = True
+        bot.send_message(chat_id=update.message.chat_id, text="Switched to polar representetion")
+        fname = str(update.message.chat_id) + '.cnf'
+        fid = open(fname, 'w')
+        fid.write('True')
+        fid.close()
+
+complex_repr_handler = CommandHandler('complex_repr', complex_repr)
+dispatcher.add_handler(complex_repr_handler)
+
 
 # =========================================
 # unknown - catch any wrong command
