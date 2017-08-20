@@ -1,2 +1,3 @@
 *.txt
+*.cnf
 /__pycache__
