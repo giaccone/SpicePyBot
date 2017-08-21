@@ -3,6 +3,9 @@
 # ======================
 import time
 import logging
+from functools import wraps
+import os
+import sys
 
 # ===================
 # module from SpicePy
@@ -29,9 +32,15 @@ def read_token(filename):
 # ===============================
 # global variables initialization
 # ===============================
-netlist_writing  = 0
+netlist_writing = 0
 fid = None
 polar = False
+
+# ===============================
+# admin list
+# ===============================
+fid = open('./admin_olny/admin_list.txt', 'r')
+LIST_OF_ADMINS = [int(adm) for adm in fid.readline().split()]
 
 # ==========================
 # standard logging
@@ -62,6 +71,19 @@ def get_solution(fname, update):
 
     return mex
 
+
+# ==========================
+# restriction decorator
+# ==========================
+def restricted(func):
+    @wraps(func)
+    def wrapped(bot, update, *args, **kwargs):
+        user_id = update.effective_user.id
+        if user_id not in LIST_OF_ADMINS:
+            print("Unauthorized access denied for {}.".format(user_id))
+            return
+        return func(bot, update, *args, **kwargs)
+    return wrapped
 
 # ==========================
 # start - welcome message
@@ -209,12 +231,19 @@ def complex_repr(bot, update):
 
 
 # =========================================
+# restart - restart the BOT
+# =========================================
+@restricted
+def restart(bot, update):
+    bot.send_message(update.message.chat_id, "Bot is restarting...")
+    time.sleep(0.2)
+    os.execl(sys.executable, sys.executable, *sys.argv)
+
+# =========================================
 # unknown - catch any wrong command
 # =========================================
 def unknown(bot, update):
     bot.send_message(chat_id=update.message.chat_id, text="Sorry, I didn't understand that command.")
-
-
 
 
 def main():
@@ -249,6 +278,9 @@ def main():
     # /complex_repr handler
     complex_repr_handler = CommandHandler('complex_repr', complex_repr)
     dispatcher.add_handler(complex_repr_handler)
+
+    # /r - restart the bot
+    dispatcher.add_handler(CommandHandler('r', restart))
 
     # reply to unknown commands
     unknown_handler = MessageHandler(Filters.command, unknown)
