@@ -19,22 +19,18 @@ from netsolve import net_solve
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 import telegram as telegram
 
-# ==========================
-# TOKEN section
-# ==========================
-# The following function reads the TOKEN from a file.
-# This file is not incuded in the github-repo for obvious reasons
-def read_token(filename):
-    with open(filename) as f:
-        token = f.readline().replace('\n','')
-    return token
-
 # ===============================
 # global variables initialization
 # ===============================
 netlist_writing = 0
 fid = None
 polar = False
+
+# ===============================
+# create necessary folders
+# ===============================
+if not os.path.exists('users'):
+    os.makedirs('users')
 
 # ===============================
 # admin list
@@ -51,6 +47,15 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 # ==========================
 # useful functions
 # ==========================
+# The following function reads the TOKEN from a file.
+# This file is not incuded in the github-repo for obvious reasons
+def read_token(filename):
+    with open(filename) as f:
+        token = f.readline().replace('\n','')
+    return token
+
+
+# compute the solution
 def get_solution(fname, update):
     global polar
 
@@ -60,7 +65,7 @@ def get_solution(fname, update):
     net.branch_current()
 
     if net.analysis[0] == '.ac':
-        fname = str(update.message.chat_id) + '.cnf'
+        fname = './users/' + str(update.message.chat_id) + '.cnf'
         fid = open(fname, 'r')
         flag = fid.readline()
         polar = flag == 'True'
@@ -92,7 +97,7 @@ def start(bot, update):
     bot.send_message(chat_id=update.message.chat_id,
                      text="*Welcome to SpycePyBot*.\n\nIt allows you to solve linear networs\n(So far, only resistive netrork).\n\nRun the code:\n`/help`\n for the short guide.\n\nRun the code:\n`/tutorial`\n to lean how to use the bot.",
                      parse_mode=telegram.ParseMode.MARKDOWN)
-    fname = str(update.message.chat_id) + '.cnf'
+    fname = './users/' + str(update.message.chat_id) + '.cnf'
     fid = open(fname, 'w')
     fid.write('False')
     fid.close()
@@ -103,7 +108,7 @@ def start(bot, update):
 # =========================================
 def catch_netlist(bot, update):
     file = bot.getFile(update.message.document.file_id)
-    fname = str(update.message.chat_id) + '.txt'
+    fname = './users/' + str(update.message.chat_id) + '.txt'
     file.download(fname)
     mex = 'This is your netlist:\n\n'
     with open(fname) as f:
@@ -179,7 +184,7 @@ def netlist(bot, update):
     global fid
     bot.send_message(chat_id=update.message.chat_id, text="Please write the netlist\nAll in one message.")
     netlist_writing = 1
-    fid = open("netlist" + str(update.message.chat_id) + ".txt", "w")
+    fid = open("./users/" + str(update.message.chat_id) + ".txt", "w")
 
 
 # =========================================
@@ -195,7 +200,7 @@ def reply(bot, update):
         # update global variable
         netlist_writing = 0
 
-        fname = "netlist" + str(update.message.chat_id) + ".txt"
+        fname = "./users/netlist" + str(update.message.chat_id) + ".txt"
         mex = 'This is your netlist:\n\n'
         with open(fname) as f:
             for line in f:
@@ -217,14 +222,14 @@ def complex_repr(bot, update):
     if polar is True:
         polar = False
         bot.send_message(chat_id=update.message.chat_id, text="Switched to cartesian representetion")
-        fname = str(update.message.chat_id) + '.cnf'
+        fname = './users/' + str(update.message.chat_id) + '.cnf'
         fid = open(fname, 'w')
         fid.write('False')
         fid.close()
     else:
         polar = True
         bot.send_message(chat_id=update.message.chat_id, text="Switched to polar representetion")
-        fname = str(update.message.chat_id) + '.cnf'
+        fname = './users/' + str(update.message.chat_id) + '.cnf'
         fid = open(fname, 'w')
         fid.write('True')
         fid.close()
@@ -239,6 +244,7 @@ def restart(bot, update):
     time.sleep(0.2)
     os.execl(sys.executable, sys.executable, *sys.argv)
 
+
 # =========================================
 # unknown - catch any wrong command
 # =========================================
@@ -248,7 +254,7 @@ def unknown(bot, update):
 
 def main():
     # set TOKEN and initialization
-    fname = 'SpicePyBot_token.txt'
+    fname = './admin_olny/SpicePyBot_token.txt'
     updater = Updater(token=read_token(fname))
     dispatcher = updater.dispatcher
 
