@@ -2,6 +2,7 @@
 # general python modules
 # ======================
 import time
+import logging
 
 # ===================
 # module from SpicePy
@@ -25,11 +26,6 @@ def read_token(filename):
         token = f.readline().replace('\n','')
     return token
 
-# set TOKEN and initialization
-fname = 'SpicePyBot_token.txt'
-updater = Updater(token=read_token(fname))
-dispatcher = updater.dispatcher
-
 # ===============================
 # global variables initialization
 # ===============================
@@ -40,12 +36,11 @@ polar = False
 # ==========================
 # standard logging
 # ==========================
-import logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',level=logging.INFO)
 
 
 # ==========================
-# usefult functions
+# useful functions
 # ==========================
 def get_solution(fname, update):
     global polar
@@ -67,6 +62,7 @@ def get_solution(fname, update):
 
     return mex
 
+
 # ==========================
 # start - welcome message
 # ==========================
@@ -79,9 +75,6 @@ def start(bot, update):
     fid.write('False')
     fid.close()
 
-
-start_handler = CommandHandler('start', start)
-dispatcher.add_handler(start_handler)
 
 # =========================================
 # catch netlist from a file sent to the bot
@@ -101,7 +94,6 @@ def catch_netlist(bot, update):
 
     bot.send_message(chat_id=update.message.chat_id, text=mex)
 
-dispatcher.add_handler(MessageHandler(Filters.document, catch_netlist))
 
 # ==========================
 # help - short guide
@@ -111,8 +103,6 @@ def help(bot, update):
                      text="*Very short guide*.\n\n1)upload a file with the netlist (don't know what a netlist is? Run `/tutorial` in the bot)\n2) enjoy\n\n\n*If you need a more detailed guide*\nRun `/tutorial` in the bot",
                      parse_mode=telegram.ParseMode.MARKDOWN)
 
-help_handler = CommandHandler('help', help)
-dispatcher.add_handler(help_handler)
 
 # =========================================
 # Tutorial - learn to use the bot
@@ -158,13 +148,6 @@ def tutorial(bot, update):
     bot.send_message(chat_id=update.message.chat_id, text=mex)
     bot.send_photo(chat_id=update.message.chat_id, photo=open('./resources/tutorial5.png', 'rb'))
 
-    #mex = get_solution(fname)
-    #mex = 'This is the circuit solution:\n\n' + mex
-    #bot.send_message(chat_id=update.message.chat_id, text=mex)
-
-tutorial_handler = CommandHandler('tutorial', tutorial)
-dispatcher.add_handler(tutorial_handler)
-
 
 # =========================================
 # netlist - write te netlist in the BOT
@@ -175,9 +158,6 @@ def netlist(bot, update):
     bot.send_message(chat_id=update.message.chat_id, text="Please write the netlist\nAll in one message.")
     netlist_writing = 1
     fid = open("netlist" + str(update.message.chat_id) + ".txt", "w")
-
-netlist_handler = CommandHandler('netlist', netlist)
-dispatcher.add_handler(netlist_handler)
 
 
 # =========================================
@@ -206,8 +186,6 @@ def reply(bot, update):
     else:
         update.message.reply_text("Come on! We are here to solve circuits and not to chat! 😀\nPlease provide me a netlist.", quote=True)
 
-reply_handler = MessageHandler(Filters.text, reply)
-dispatcher.add_handler(reply_handler)
 
 # =========================================
 # unknown - catch any wrong command
@@ -229,9 +207,6 @@ def complex_repr(bot, update):
         fid.write('True')
         fid.close()
 
-complex_repr_handler = CommandHandler('complex_repr', complex_repr)
-dispatcher.add_handler(complex_repr_handler)
-
 
 # =========================================
 # unknown - catch any wrong command
@@ -239,15 +214,52 @@ dispatcher.add_handler(complex_repr_handler)
 def unknown(bot, update):
     bot.send_message(chat_id=update.message.chat_id, text="Sorry, I didn't understand that command.")
 
-unknown_handler = MessageHandler(Filters.command, unknown)
-dispatcher.add_handler(unknown_handler)
 
-# =========================================
-# Start the Bot
-# =========================================
-updater.start_polling()
 
-# Block until you press Ctrl-C or the process receives SIGINT, SIGTERM or
-# SIGABRT. This should be used most of the time, since start_polling() is
-# non-blocking and will stop the bot gracefully.
-updater.idle()
+
+def main():
+    # set TOKEN and initialization
+    fname = 'SpicePyBot_token.txt'
+    updater = Updater(token=read_token(fname))
+    dispatcher = updater.dispatcher
+
+    # /start handler
+    start_handler = CommandHandler('start', start)
+    dispatcher.add_handler(start_handler)
+
+    # chatch netlist when sent to the BOT
+    dispatcher.add_handler(MessageHandler(Filters.document, catch_netlist))
+
+    # /help handler
+    help_handler = CommandHandler('help', help)
+    dispatcher.add_handler(help_handler)
+
+    # /tutorial handler
+    tutorial_handler = CommandHandler('tutorial', tutorial)
+    dispatcher.add_handler(tutorial_handler)
+
+    # /netlist handler
+    netlist_handler = CommandHandler('netlist', netlist)
+    dispatcher.add_handler(netlist_handler)
+
+    # reply to random message
+    reply_handler = MessageHandler(Filters.text, reply)
+    dispatcher.add_handler(reply_handler)
+
+    # /complex_repr handler
+    complex_repr_handler = CommandHandler('complex_repr', complex_repr)
+    dispatcher.add_handler(complex_repr_handler)
+
+    # reply to unknown commands
+    unknown_handler = MessageHandler(Filters.command, unknown)
+    dispatcher.add_handler(unknown_handler)
+
+    # start the BOT
+    updater.start_polling()
+    # Block until you press Ctrl-C or the process receives SIGINT, SIGTERM or
+    # SIGABRT. This should be used most of the time, since start_polling() is
+    # non-blocking and will stop the bot gracefully.
+    updater.idle()
+
+if __name__ == '__main__':
+    main()
