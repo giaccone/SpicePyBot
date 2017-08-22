@@ -86,16 +86,27 @@ def restricted(func):
         user_id = update.effective_user.id
         if user_id not in LIST_OF_ADMINS:
             print("Unauthorized access denied for {}.".format(user_id))
+            bot.send_message(chat_id=update.message.chat_id, text="You are not authorized to run this command")
             return
         return func(bot, update, *args, **kwargs)
     return wrapped
+
 
 # ==========================
 # start - welcome message
 # ==========================
 def start(bot, update):
+    msg = "*Welcome to SpycePyBot*.\n\n"
+    msg += "It allows you to solve linear:\n"
+    msg += "  \* DC networks\n"
+    msg += "  \* AC networks\n\n"
+    msg += "Run the code:\n"
+    msg += "`/help`:  to have a short guide.\n\n"
+    msg += "Run the code:\n"
+    msg += "`/tutorial`: to lean how to use the Bot."
+
     bot.send_message(chat_id=update.message.chat_id,
-                     text="*Welcome to SpycePyBot*.\n\nIt allows you to solve linear networs\n(So far, only resistive netrork).\n\nRun the code:\n`/help`\n for the short guide.\n\nRun the code:\n`/tutorial`\n to lean how to use the bot.",
+                     text=msg,
                      parse_mode=telegram.ParseMode.MARKDOWN)
     fname = './users/' + str(update.message.chat_id) + '.cnf'
     fid = open(fname, 'w')
@@ -126,9 +137,20 @@ def catch_netlist(bot, update):
 # help - short guide
 # ==========================
 def help(bot, update):
+    msg = "*Very short guide*.\n\n" #1)upload a file with the netlist (don't know what a netlist is? Run `/tutorial` in the bot)\n2) enjoy\n\n\n*If you need a more detailed guide*\nRun `/tutorial` in the bot"
+    msg += "The Bot makes use of netlists to describe circuits. If you do not know what "
+    msg += "a netlist is, please refer to  SpicePy "
+    msg += "[documentation](https://github.com/giaccone/SpicePy/wiki/User's-guide)"
+    msg += " and [examples](https://github.com/giaccone/SpicePy/wiki/Examples).\n\n"
+    msg += "Assuming that you know how to describe a circuit by means of a netlist, you can either:\n\n"
+    msg += "1) use the command `/netlist` and write the netlist directely to the Bot (i.e. chatting with the BOT)\n\n"
+    msg += "or\n\n"
+    msg += "2) send a text file to the Bot including the netlist. The Bot will catch it and it'll solve it.\n\n"
+    msg += "*Finally*\n"
+    msg += "you can follow a tutorial by means of the command `/tutorial`"
     bot.send_message(chat_id=update.message.chat_id,
-                     text="*Very short guide*.\n\n1)upload a file with the netlist (don't know what a netlist is? Run `/tutorial` in the bot)\n2) enjoy\n\n\n*If you need a more detailed guide*\nRun `/tutorial` in the bot",
-                     parse_mode=telegram.ParseMode.MARKDOWN)
+                     text=msg,
+                     parse_mode=telegram.ParseMode.MARKDOWN, disable_web_page_preview=True)
 
 
 # =========================================
