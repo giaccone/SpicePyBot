@@ -51,7 +51,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 # This file is not incuded in the github-repo for obvious reasons
 def read_token(filename):
     with open(filename) as f:
-        token = f.readline().replace('\n','')
+        token = f.readline().replace('\n', '')
     return token
 
 
@@ -72,7 +72,12 @@ def get_solution(fname, update):
     else:
         polar = False
 
-    mex = net.print(polar=polar, message=True).replace('==','=')
+    mex = net.print(polar=polar, message=True)
+    mex = mex.replace('==============================================\n'
+                      '               branch quantities'
+                      '\n==============================================\n', '*branch quantities*\n`')
+    mex = mex.replace('----------------------------------------------', '')
+    mex += '`'
 
     return mex
 
@@ -130,7 +135,7 @@ def catch_netlist(bot, update):
     mex = get_solution(fname, update)
     mex = 'This is the circuit solution:\n\n' + mex
 
-    bot.send_message(chat_id=update.message.chat_id, text=mex)
+    bot.send_message(chat_id=update.message.chat_id, text=mex, parse_mode=telegram.ParseMode.MARKDOWN)
 
 
 # ==========================
@@ -162,7 +167,8 @@ def tutorial(bot, update):
     bot.send_message(chat_id=update.message.chat_id, text="Let us assume to solve the following circuit:")
     bot.send_photo(chat_id=update.message.chat_id, photo=open('./resources/circ.png', 'rb'))
 
-    mex = 'You have to write on a file the netlist describing the circuit:\n\nIt should look like the following one:\n\n'
+    mex = 'You have to write on a file the netlist describing the circuit:\n\n'
+    mex += 'It should look like the following one:\n\n'
     with open(fname) as f:
         for line in f:
             mex += line
@@ -193,7 +199,7 @@ def tutorial(bot, update):
     bot.send_message(chat_id=update.message.chat_id, text=mex)
     bot.send_photo(chat_id=update.message.chat_id, photo=open('./resources/tutorial4.png', 'rb'))
 
-    mex = 'check the correctenss of the netlist and enjoyt the results...'
+    mex = 'check the correctness of the netlist and enjoy the results...'
     bot.send_message(chat_id=update.message.chat_id, text=mex)
     bot.send_photo(chat_id=update.message.chat_id, photo=open('./resources/tutorial5.png', 'rb'))
 
@@ -222,7 +228,7 @@ def reply(bot, update):
         # update global variable
         netlist_writing = 0
 
-        fname = "./users/netlist" + str(update.message.chat_id) + ".txt"
+        fname = "./users/" + str(update.message.chat_id) + ".txt"
         mex = 'This is your netlist:\n\n'
         with open(fname) as f:
             for line in f:
@@ -231,7 +237,8 @@ def reply(bot, update):
 
         mex = get_solution(fname, update)
         mex = 'This is the circuit solution:\n\n' + mex
-        bot.send_message(chat_id=update.message.chat_id, text=mex)
+        bot.send_message(chat_id=update.message.chat_id, text=mex,
+                         parse_mode=telegram.ParseMode.MARKDOWN)
     else:
         update.message.reply_text("Come on! We are here to solve circuits and not to chat! 😀\nPlease provide me a netlist.", quote=True)
 
@@ -243,14 +250,14 @@ def complex_repr(bot, update):
     global polar
     if polar is True:
         polar = False
-        bot.send_message(chat_id=update.message.chat_id, text="Switched to cartesian representetion")
+        bot.send_message(chat_id=update.message.chat_id, text="Switched to cartesian representation")
         fname = './users/' + str(update.message.chat_id) + '.cnf'
         fid = open(fname, 'w')
         fid.write('False')
         fid.close()
     else:
         polar = True
-        bot.send_message(chat_id=update.message.chat_id, text="Switched to polar representetion")
+        bot.send_message(chat_id=update.message.chat_id, text="Switched to polar representation")
         fname = './users/' + str(update.message.chat_id) + '.cnf'
         fid = open(fname, 'w')
         fid.write('True')
