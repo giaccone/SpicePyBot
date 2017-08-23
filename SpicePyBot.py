@@ -22,8 +22,6 @@ import telegram as telegram
 # ===============================
 # global variables initialization
 # ===============================
-netlist_writing = 0
-fid = None
 polar = False
 
 # ===============================
@@ -208,25 +206,22 @@ def tutorial(bot, update):
 # netlist - write te netlist in the BOT
 # =========================================
 def netlist(bot, update):
-    global netlist_writing
-    global fid
+    open("./users/" + str(update.message.chat_id) + "_waitnetlist", 'w').close()
     bot.send_message(chat_id=update.message.chat_id, text="Please write the netlist\nAll in one message.")
-    netlist_writing = 1
-    fid = open("./users/" + str(update.message.chat_id) + ".txt", "w")
 
 
 # =========================================
 # reply - catch any message and reply to it
 # =========================================
 def reply(bot, update):
-    global netlist_writing
-    if netlist_writing:
+    if os.path.exists("./users/" + str(update.message.chat_id) + "_waitnetlist"):
         # write the netlist
+        fid = open("./users/" + str(update.message.chat_id) + ".txt", "w")
         fid.write(str(update.message.text) + '\n')
         fid.close()
 
-        # update global variable
-        netlist_writing = 0
+        # remove waitnetlist file for this user
+        os.remove("./users/" + str(update.message.chat_id) + "_waitnetlist")
 
         fname = "./users/" + str(update.message.chat_id) + ".txt"
         mex = 'This is your netlist:\n\n'
@@ -240,7 +235,8 @@ def reply(bot, update):
         bot.send_message(chat_id=update.message.chat_id, text=mex,
                          parse_mode=telegram.ParseMode.MARKDOWN)
     else:
-        update.message.reply_text("Come on! We are here to solve circuits and not to chat! 😀\nPlease provide me a netlist.", quote=True)
+        update.message.reply_text("Come on! We are here to solve circuits and not to chat! 😀\n"
+                                  "Please provide me a netlist.", quote=True)
 
 
 # =========================================
