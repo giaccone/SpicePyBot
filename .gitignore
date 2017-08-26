@@ -1,3 +1,4 @@
 *.txt
 *.cnf
+*.log
 /__pycache__

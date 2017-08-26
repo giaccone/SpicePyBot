@@ -39,7 +39,7 @@ LIST_OF_ADMINS = [int(adm) for adm in fid.readline().split()]
 # ==========================
 # standard logging
 # ==========================
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',level=logging.INFO)
+logging.basicConfig(filename='SpicePyBot.log', format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',level=logging.INFO)
 
 
 # ==========================
@@ -55,6 +55,14 @@ def read_token(filename):
 
 # compute the solution
 def get_solution(fname, update):
+    """
+    'get_solution' computes the solution of a network using SpicePy
+
+    :param fname: filename with the netlist
+    :param update: Bot updater
+    :return:
+        * mex:  solution formatted in a string
+    """
     global polar
 
     net = ntl.Network(fname)
@@ -76,6 +84,10 @@ def get_solution(fname, update):
                       '\n==============================================\n', '*branch quantities*\n`')
     mex = mex.replace('----------------------------------------------', '')
     mex += '`'
+
+    # Log every time a network is solved
+    # To make stat it is saved the type of network and the UserID
+    logging.info('Analysis: ' + net.analysis[0] + ' - UserID: ' + str(update.effective_user.id))
 
     return mex
 
