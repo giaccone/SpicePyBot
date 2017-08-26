@@ -117,12 +117,13 @@ def start(bot, update):
     msg += "  \* AC networks\n\n"
     msg += "Run the code:\n"
     msg += "`/help`:  to have a short guide.\n\n"
-    msg += "Run the code:\n"
-    msg += "`/tutorial`: to learn how to use the Bot."
+    msg += "or\n\n"
+    msg += "Read the full [tutorial](https://github.com/giaccone/SpicePyBot/wiki) if "
+    msg += "you are completely new to this subject."
 
     bot.send_message(chat_id=update.message.chat_id,
                      text=msg,
-                     parse_mode=telegram.ParseMode.MARKDOWN)
+                     parse_mode=telegram.ParseMode.MARKDOWN, disable_web_page_preview=True)
     fname = './users/' + str(update.message.chat_id) + '.cnf'
     fid = open(fname, 'w')
     fid.write('False')
@@ -170,56 +171,11 @@ def help(bot, update):
     msg += "or\n\n"
     msg += "2) send a text file to the Bot including the netlist. The Bot will catch it and it'll solve it.\n\n"
     msg += "*Finally*\n"
-    msg += "you can follow a tutorial by means of the command `/tutorial`"
+    msg += "read the full [tutorial](https://github.com/giaccone/SpicePyBot/wiki) if "
+    msg += "you are completely new to this subject."
     bot.send_message(chat_id=update.message.chat_id,
                      text=msg,
                      parse_mode=telegram.ParseMode.MARKDOWN, disable_web_page_preview=True)
-
-
-# =========================================
-# Tutorial - learn to use the bot
-# =========================================
-def tutorial(bot, update):
-    fname = "./resources/network.net"
-
-    bot.send_message(chat_id=update.message.chat_id, text="Let us assume to solve the following circuit:")
-    bot.send_photo(chat_id=update.message.chat_id, photo=open('./resources/circ.png', 'rb'))
-
-    mex = 'You have to write on a file the netlist describing the circuit:\n\n'
-    mex += 'It should look like the following one:\n\n'
-    with open(fname) as f:
-        for line in f:
-            mex += line
-    bot.send_message(chat_id=update.message.chat_id, text=mex)
-
-    bot.send_chat_action(chat_id=update.message.chat_id, action=telegram.ChatAction.TYPING)
-    time.sleep(8)
-
-    mex = 'Here it is your file...'
-    bot.send_message(chat_id=update.message.chat_id, text=mex)
-    bot.send_photo(chat_id=update.message.chat_id, photo=open('./resources/tutorial1.png', 'rb'))
-
-    mex = 'and its content...'
-    bot.send_message(chat_id=update.message.chat_id, text=mex)
-    bot.send_photo(chat_id=update.message.chat_id, photo=open('./resources/tutorial2.png', 'rb'))
-
-    bot.send_chat_action(chat_id=update.message.chat_id, action=telegram.ChatAction.TYPING)
-    time.sleep(8)
-
-    mex = 'tap on the upload button...'
-    bot.send_message(chat_id=update.message.chat_id, text=mex)
-    bot.send_photo(chat_id=update.message.chat_id, photo=open('./resources/tutorial3.png', 'rb'))
-
-    bot.send_chat_action(chat_id=update.message.chat_id, action=telegram.ChatAction.TYPING)
-    time.sleep(8)
-
-    mex = 'tap on your file...'
-    bot.send_message(chat_id=update.message.chat_id, text=mex)
-    bot.send_photo(chat_id=update.message.chat_id, photo=open('./resources/tutorial4.png', 'rb'))
-
-    mex = 'check the correctness of the netlist and enjoy the results...'
-    bot.send_message(chat_id=update.message.chat_id, text=mex)
-    bot.send_photo(chat_id=update.message.chat_id, photo=open('./resources/tutorial5.png', 'rb'))
 
 
 # =========================================
@@ -321,10 +277,6 @@ def main():
     # /help handler
     help_handler = CommandHandler('help', help)
     dispatcher.add_handler(help_handler)
-
-    # /tutorial handler
-    tutorial_handler = CommandHandler('tutorial', tutorial)
-    dispatcher.add_handler(tutorial_handler)
 
     # /netlist handler
     netlist_handler = CommandHandler('netlist', netlist)
