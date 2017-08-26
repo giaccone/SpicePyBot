@@ -111,7 +111,7 @@ def restricted(func):
 # start - welcome message
 # ==========================
 def start(bot, update):
-    msg = "*Welcome to SpycePyBot*.\n\n"
+    msg = "*Welcome to SpicePyBot*.\n\n"
     msg += "It allows you to solve linear:\n"
     msg += "  \* DC networks\n"
     msg += "  \* AC networks\n\n"
