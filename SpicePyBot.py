@@ -118,7 +118,7 @@ def start(bot, update):
     msg += "Run the code:\n"
     msg += "`/help`:  to have a short guide.\n\n"
     msg += "Run the code:\n"
-    msg += "`/tutorial`: to lean how to use the Bot."
+    msg += "`/tutorial`: to learn how to use the Bot."
 
     bot.send_message(chat_id=update.message.chat_id,
                      text=msg,
