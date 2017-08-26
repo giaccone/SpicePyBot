@@ -33,7 +33,7 @@ if not os.path.exists('users'):
 # ===============================
 # admin list
 # ===============================
-fid = open('./admin_olny/admin_list.txt', 'r')
+fid = open('./admin_only/admin_list.txt', 'r')
 LIST_OF_ADMINS = [int(adm) for adm in fid.readline().split()]
 
 # ==========================
@@ -291,7 +291,7 @@ def unknown(bot, update):
 
 def main():
     # set TOKEN and initialization
-    fname = './admin_olny/SpicePyBot_token.txt'
+    fname = './admin_only/SpicePyBot_token.txt'
     updater = Updater(token=read_token(fname))
     dispatcher = updater.dispatcher
 
