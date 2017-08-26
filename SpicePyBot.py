@@ -133,6 +133,14 @@ def start(bot, update):
 # catch netlist from a file sent to the bot
 # =========================================
 def catch_netlist(bot, update):
+
+    # if current user don't have cnf file create it
+    if not os.path.exists('./users/' + str(update.message.chat_id) + '.cnf'):
+        fname = './users/' + str(update.message.chat_id) + '.cnf'
+        fid = open(fname, 'w')
+        fid.write('False')
+        fid.close()
+
     file = bot.getFile(update.message.document.file_id)
     fname = './users/' + str(update.message.chat_id) + '.txt'
     file.download(fname)
@@ -218,6 +226,14 @@ def tutorial(bot, update):
 # netlist - write te netlist in the BOT
 # =========================================
 def netlist(bot, update):
+
+    # if current user don't have cnf file create it
+    if not os.path.exists('./users/' + str(update.message.chat_id) + '.cnf'):
+        fname = './users/' + str(update.message.chat_id) + '.cnf'
+        fid = open(fname, 'w')
+        fid.write('False')
+        fid.close()
+
     open("./users/" + str(update.message.chat_id) + "_waitnetlist", 'w').close()
     bot.send_message(chat_id=update.message.chat_id, text="Please write the netlist\nAll in one message.")
 
