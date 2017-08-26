@@ -167,7 +167,7 @@ def help(bot, update):
     msg += "[documentation](https://github.com/giaccone/SpicePy/wiki/User's-guide)"
     msg += " and [examples](https://github.com/giaccone/SpicePy/wiki/Examples).\n\n"
     msg += "Assuming that you know how to describe a circuit by means of a netlist, you can either:\n\n"
-    msg += "1) use the command `/netlist` and write the netlist directely to the Bot (i.e. chatting with the BOT)\n\n"
+    msg += "1) use the command `/netlist` and write the netlist directly to the Bot (i.e. chatting with the BOT)\n\n"
     msg += "or\n\n"
     msg += "2) send a text file to the Bot including the netlist. The Bot will catch it and it'll solve it.\n\n"
     msg += "*Finally*\n"
