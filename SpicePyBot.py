@@ -63,33 +63,38 @@ def get_solution(fname, update):
     :return:
         * mex:  solution formatted in a string
     """
-    global polar
+    try:
+        global polar
 
-    net = ntl.Network(fname)
-    net_solve(net)
-    net.branch_voltage()
-    net.branch_current()
+        net = ntl.Network(fname)
+        net_solve(net)
+        net.branch_voltage()
+        net.branch_current()
 
-    if net.analysis[0] == '.ac':
-        fname = './users/' + str(update.message.chat_id) + '.cnf'
-        fid = open(fname, 'r')
-        flag = fid.readline()
-        polar = flag == 'True'
-    else:
-        polar = False
+        if net.analysis[0] == '.ac':
+            fname = './users/' + str(update.message.chat_id) + '.cnf'
+            fid = open(fname, 'r')
+            flag = fid.readline()
+            polar = flag == 'True'
+        else:
+            polar = False
 
-    mex = net.print(polar=polar, message=True)
-    mex = mex.replace('==============================================\n'
-                      '               branch quantities'
-                      '\n==============================================\n', '*branch quantities*\n`')
-    mex = mex.replace('----------------------------------------------', '')
-    mex += '`'
+        mex = net.print(polar=polar, message=True)
+        mex = mex.replace('==============================================\n'
+                          '               branch quantities'
+                          '\n==============================================\n', '*branch quantities*\n`')
+        mex = mex.replace('----------------------------------------------', '')
+        mex += '`'
 
-    # Log every time a network is solved
-    # To make stat it is saved the type of network and the UserID
-    logging.info('Analysis: ' + net.analysis[0] + ' - UserID: ' + str(update.effective_user.id))
+        # Log every time a network is solved
+        # To make stat it is saved the type of network and the UserID
+        logging.info('Analysis: ' + net.analysis[0] + ' - UserID: ' + str(update.effective_user.id))
 
-    return mex
+        return mex
+
+    except:
+        logging.error('Netlist_Error - UserID: ' + str(update.effective_user.id))
+        return "*Something went wrong with your netlist*.\nPlease check the netlist format."
 
 
 # ==========================
