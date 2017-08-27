@@ -260,6 +260,14 @@ def restart(bot, update):
 
 
 # =========================================
+# log - restart the BOT
+# =========================================
+@restricted
+def log(bot, update):
+    bot.send_document(chat_id=update.message.chat_id, document=open('./SpicePyBot.log', 'rb'))
+
+
+# =========================================
 # unknown - catch any wrong command
 # =========================================
 def unknown(bot, update):
@@ -297,6 +305,9 @@ def main():
 
     # /r - restart the bot
     dispatcher.add_handler(CommandHandler('r', restart))
+
+    # /log - get log file
+    dispatcher.add_handler(CommandHandler('log', log))
 
     # reply to unknown commands
     unknown_handler = MessageHandler(Filters.command, unknown)
