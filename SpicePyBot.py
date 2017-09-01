@@ -6,6 +6,10 @@ import logging
 from functools import wraps
 import os
 import sys
+import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 # ===================
 # module from SpicePy
@@ -66,11 +70,16 @@ def get_solution(fname, update):
     try:
         global polar
 
+        # create network and solve it
         net = ntl.Network(fname)
         net_solve(net)
-        net.branch_voltage()
-        net.branch_current()
 
+        # excluding transient analysis, compute branch quantities
+        if net.analysis[0].lower() != '.tran':
+            net.branch_voltage()
+            net.branch_current()
+
+        # get configurations for '.ac' problems
         if net.analysis[0] == '.ac':
             fname = './users/' + str(update.message.chat_id) + '.cnf'
             fid = open(fname, 'r')
@@ -79,12 +88,18 @@ def get_solution(fname, update):
         else:
             polar = False
 
-        mex = net.print(polar=polar, message=True)
-        mex = mex.replace('==============================================\n'
-                          '               branch quantities'
-                          '\n==============================================\n', '*branch quantities*\n`')
-        mex = mex.replace('----------------------------------------------', '')
-        mex += '`'
+        # excluding transient analysis, prepare mex to be printed
+        if net.analysis[0].lower() != '.tran':
+            mex = net.print(polar=polar, message=True)
+            mex = mex.replace('==============================================\n'
+                              '               branch quantities'
+                              '\n==============================================\n', '*branch quantities*\n`')
+            mex = mex.replace('----------------------------------------------', '')
+            mex += '`'
+        elif net.analysis[0].lower() == '.tran':
+            hf = net.plot(to_file=True, filename='./users/tran_plot_' + str(update.message.chat_id) + '.png',dpi_value=150)
+            mex = None
+            plt.close(hf)
 
         # Log every time a network is solved
         # To make stat it is saved the type of network and the UserID
@@ -118,8 +133,9 @@ def restricted(func):
 def start(bot, update):
     msg = "*Welcome to SpicePyBot*.\n\n"
     msg += "It allows you to solve linear:\n"
-    msg += "  \* DC networks\n"
-    msg += "  \* AC networks\n\n"
+    msg += "  \* DC networks (.op)\n"
+    msg += "  \* AC networks (.ac)\n\n"
+    msg += "  \* dynamic networks (.tran)\n\n"
     msg += "Run the code:\n"
     msg += "`/help`:  to have a short guide.\n\n"
     msg += "or\n\n"
@@ -147,19 +163,29 @@ def catch_netlist(bot, update):
         fid.write('False')
         fid.close()
 
+    # catch the netlist from file
     file = bot.getFile(update.message.document.file_id)
     fname = './users/' + str(update.message.chat_id) + '.txt'
     file.download(fname)
+
+    # send the netlist for double check to user
     mex = 'This is your netlist:\n\n'
     with open(fname) as f:
         for line in f:
             mex += line
     bot.send_message(chat_id=update.message.chat_id, text=mex)
 
+    # compute solution
     mex = get_solution(fname, update)
-    mex = 'This is the circuit solution:\n\n' + mex
 
-    bot.send_message(chat_id=update.message.chat_id, text=mex, parse_mode=telegram.ParseMode.MARKDOWN)
+    if mex is None:    # in case of .tran mex is none, hence send the plot
+        bot.send_photo(chat_id=update.message.chat_id,
+                       photo=open('./users/tran_plot_' + str(update.message.chat_id) + '.png', 'rb'))
+
+    else:    # otherwise print results
+        mex = 'This is the circuit solution:\n\n' + mex
+        bot.send_message(chat_id=update.message.chat_id, text=mex,
+                         parse_mode=telegram.ParseMode.MARKDOWN)
 
 
 # ==========================
@@ -203,27 +229,36 @@ def netlist(bot, update):
 # reply - catch any message and reply to it
 # =========================================
 def reply(bot, update):
+    # check call to /netlist
     if os.path.exists("./users/" + str(update.message.chat_id) + "_waitnetlist"):
         # write the netlist
-        fid = open("./users/" + str(update.message.chat_id) + ".txt", "w")
+        fname = "./users/" + str(update.message.chat_id) + ".txt"
+        fid = open(fname, "w")
         fid.write(str(update.message.text) + '\n')
         fid.close()
 
         # remove waitnetlist file for this user
         os.remove("./users/" + str(update.message.chat_id) + "_waitnetlist")
 
-        fname = "./users/" + str(update.message.chat_id) + ".txt"
+        # send the netlist for double check to user
         mex = 'This is your netlist:\n\n'
         with open(fname) as f:
             for line in f:
                 mex += line
         bot.send_message(chat_id=update.message.chat_id, text=mex)
 
+        # compute solution
         mex = get_solution(fname, update)
-        mex = 'This is the circuit solution:\n\n' + mex
-        bot.send_message(chat_id=update.message.chat_id, text=mex,
-                         parse_mode=telegram.ParseMode.MARKDOWN)
-    else:
+
+        if mex is None:    # in case of .tran mex is none, hence send the plot
+            bot.send_photo(chat_id=update.message.chat_id, photo=open('./users/tran_plot_' + str(update.message.chat_id) + '.png', 'rb'))
+
+        else:    # otherwise print results
+            mex = 'This is the circuit solution:\n\n' + mex
+            bot.send_message(chat_id=update.message.chat_id, text=mex,
+                             parse_mode=telegram.ParseMode.MARKDOWN)
+
+    else:    # ironic answer if the user send a random mesage to the Bot
         update.message.reply_text("Come on! We are here to solve circuits and not to chat! 😀\n"
                                   "Please provide me a netlist.", quote=True)
 

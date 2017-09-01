@@ -2,3 +2,4 @@
 *.cnf
 *.log
 /__pycache__
+/users
