@@ -134,7 +134,7 @@ def start(bot, update):
     msg = "*Welcome to SpicePyBot*.\n\n"
     msg += "It allows you to solve linear:\n"
     msg += "  \* DC networks (.op)\n"
-    msg += "  \* AC networks (.ac)\n\n"
+    msg += "  \* AC networks (.ac)\n"
     msg += "  \* dynamic networks (.tran)\n\n"
     msg += "Run the code:\n"
     msg += "`/help`:  to have a short guide.\n\n"
@@ -177,6 +177,9 @@ def catch_netlist(bot, update):
 
     # compute solution
     mex = get_solution(fname, update)
+
+    # typing
+    bot.send_chat_action(chat_id=update.message.chat_id, action=telegram.ChatAction.TYPING)
 
     if mex is None:    # in case of .tran mex is none, hence send the plot
         bot.send_photo(chat_id=update.message.chat_id,
@@ -249,6 +252,9 @@ def reply(bot, update):
 
         # compute solution
         mex = get_solution(fname, update)
+
+        # typing
+        bot.send_chat_action(chat_id=update.message.chat_id, action=telegram.ChatAction.TYPING)
 
         if mex is None:    # in case of .tran mex is none, hence send the plot
             bot.send_photo(chat_id=update.message.chat_id, photo=open('./users/tran_plot_' + str(update.message.chat_id) + '.png', 'rb'))
