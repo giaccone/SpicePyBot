@@ -58,7 +58,7 @@ def read_token(filename):
 
 
 # compute the solution
-def get_solution(fname, update):
+def get_solution(fname, bot, update):
     """
     'get_solution' computes the solution of a network using SpicePy
 
@@ -72,6 +72,24 @@ def get_solution(fname, update):
 
         # create network and solve it
         net = ntl.Network(fname)
+
+        # limit sample for .tran to 2000 (max)
+        if net.analysis[0] == '.tran':
+            Nsamples = float(net.analysis[2]) / float(net.analysis[1])
+            if Nsamples > 2000:
+                step = float(net.analysis[2])/1999
+                net.analysis[1] = '{:.3e}'.format(step)
+
+                mex = "Your netlits defines a '.tran' analysis with *{}* samples\n".format(Nsamples)
+                mex += "Since this bot runs on a limited hardware shared by many users\n"
+                mex += "The analysis has been limited to *2000* samples:\n"
+                mex += "`.tran " + net.analysis[1] + " " + net.analysis[-1] + "`"
+
+
+                bot.send_message(chat_id=update.message.chat_id,
+                                 text=mex,
+                                 parse_mode=telegram.ParseMode.MARKDOWN)
+        # solve the network
         net_solve(net)
 
         # excluding transient analysis, compute branch quantities
@@ -176,7 +194,7 @@ def catch_netlist(bot, update):
     bot.send_message(chat_id=update.message.chat_id, text=mex)
 
     # compute solution
-    mex = get_solution(fname, update)
+    mex = get_solution(fname, bot, update)
 
     # typing
     bot.send_chat_action(chat_id=update.message.chat_id, action=telegram.ChatAction.TYPING)
@@ -251,7 +269,7 @@ def reply(bot, update):
         bot.send_message(chat_id=update.message.chat_id, text=mex)
 
         # compute solution
-        mex = get_solution(fname, update)
+        mex = get_solution(fname, bot, update)
 
         # typing
         bot.send_chat_action(chat_id=update.message.chat_id, action=telegram.ChatAction.TYPING)
