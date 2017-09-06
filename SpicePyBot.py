@@ -63,7 +63,7 @@ logINFO.addFilter(MyFilter(logging.INFO))
 
 # standard log >= WARNING
 std_log = logging.getLogger('std_log')
-h2 = logging.FileHandler('StatBot.log')
+h2 = logging.FileHandler('SpicePyBot.log')
 h2.setFormatter(fmt)
 std_log.addHandler(h2)
 
