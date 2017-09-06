@@ -6,7 +6,6 @@ import logging
 from functools import wraps
 import os
 import sys
-import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -41,10 +40,32 @@ fid = open('./admin_only/admin_list.txt', 'r')
 LIST_OF_ADMINS = [int(adm) for adm in fid.readline().split()]
 
 # ==========================
-# standard logging
+# Logging
 # ==========================
-logging.basicConfig(filename='SpicePyBot.log', format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',level=logging.INFO)
+# define filter to log only one level
+class MyFilter(object):
+    def __init__(self, level):
+        self.__level = level
 
+    def filter(self, logRecord):
+        return logRecord.levelno <= self.__level
+
+# formatter
+fmt = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+# stat log
+logINFO = logging.getLogger('logINFO')
+h1 = logging.FileHandler('StatBot.log')
+h1.setFormatter(fmt)
+logINFO.addHandler(h1)
+logINFO.setLevel(logging.INFO)
+logINFO.addFilter(MyFilter(logging.INFO))
+
+# standard log >= WARNING
+std_log = logging.getLogger('std_log')
+h2 = logging.FileHandler('StatBot.log')
+h2.setFormatter(fmt)
+std_log.addHandler(h2)
 
 # ==========================
 # useful functions
@@ -121,7 +142,7 @@ def get_solution(fname, bot, update):
 
         # Log every time a network is solved
         # To make stat it is saved the type of network and the UserID
-        logging.info('Analysis: ' + net.analysis[0] + ' - UserID: ' + str(update.effective_user.id))
+        logINFO.info('Analysis: ' + net.analysis[0] + ' - UserID: ' + str(update.effective_user.id))
 
         return mex
 
