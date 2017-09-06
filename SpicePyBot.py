@@ -340,11 +340,19 @@ def restart(bot, update):
 
 
 # =========================================
-# log - restart the BOT
+# log - get log
 # =========================================
 @restricted
 def log(bot, update):
     bot.send_document(chat_id=update.message.chat_id, document=open('./SpicePyBot.log', 'rb'))
+
+
+# =========================================
+# stat - get stat
+# =========================================
+@restricted
+def stat(bot, update):
+    bot.send_document(chat_id=update.message.chat_id, document=open('./StatBot.log', 'rb'))
 
 
 # =========================================
@@ -388,6 +396,9 @@ def main():
 
     # /log - get log file
     dispatcher.add_handler(CommandHandler('log', log))
+
+    # /log - get stat file
+    dispatcher.add_handler(CommandHandler('stat', stat))
 
     # reply to unknown commands
     unknown_handler = MessageHandler(Filters.command, unknown)
