@@ -101,7 +101,7 @@ def get_solution(fname, bot, update):
                 step = float(net.analysis[2])/1999
                 net.analysis[1] = '{:.3e}'.format(step)
 
-                mex = "Your netlits defines a '.tran' analysis with *{}* samples\n".format(Nsamples)
+                mex = "Your netlits defines a '.tran' analysis with *{:d}* samples\n".format(int(Nsamples))
                 mex += "Since this bot runs on a limited hardware shared by many users\n"
                 mex += "The analysis has been limited to *2000* samples:\n"
                 mex += "`.tran " + net.analysis[1] + " " + net.analysis[-1] + "`"
