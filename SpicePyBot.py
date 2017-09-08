@@ -117,6 +117,7 @@ def get_solution(fname, bot, update):
         if net.analysis[0].lower() != '.tran':
             net.branch_voltage()
             net.branch_current()
+            net.branch_power()
 
         # get configurations for '.ac' problems
         if net.analysis[0] == '.ac':
