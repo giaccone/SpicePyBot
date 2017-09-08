@@ -148,7 +148,7 @@ def get_solution(fname, bot, update):
         return mex
 
     except:
-        logging.error('Netlist_Error - UserID: ' + str(update.effective_user.id))
+        std_log.error('Netlist_Error - UserID: ' + str(update.effective_user.id))
         return "*Something went wrong with your netlist*.\nPlease check the netlist format."
 
 
