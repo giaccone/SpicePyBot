@@ -98,7 +98,7 @@ def get_solution(fname, bot, update):
         NMAX = 40
         if net.node_num > NMAX:
             mex = "Your netlist includes more than {:d} nodes.\n".format(net.node_num)
-            mex += "The maximum allowed number on this bot is {:d}.\n".format(NMAX)
+            mex += "*The maximum allowed number on this bot is {:d}.*\n".format(NMAX)
             mex += "Please reduce the number of nodes or take a look to the computational core of this bot "
             mex += "that does not have this limitation:\n"
             mex += "[SpicePy project](https://github.com/giaccone/SpicePy)"
@@ -239,7 +239,7 @@ def catch_netlist(bot, update):
     else:    # otherwise print results
         mex = 'This is the circuit solution:\n\n' + mex
         bot.send_message(chat_id=update.message.chat_id, text=mex,
-                         parse_mode=telegram.ParseMode.MARKDOWN)
+                         parse_mode=telegram.ParseMode.MARKDOWN, disable_web_page_preview=True)
 
 
 # ==========================
