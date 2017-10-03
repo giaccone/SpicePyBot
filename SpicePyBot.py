@@ -94,56 +94,67 @@ def get_solution(fname, bot, update):
         # create network and solve it
         net = ntl.Network(fname)
 
-        # limit sample for .tran to 2000 (max)
-        if net.analysis[0] == '.tran':
-            Nsamples = float(net.analysis[2]) / float(net.analysis[1])
-            if Nsamples > 2000:
-                step = float(net.analysis[2])/1999
-                net.analysis[1] = '{:.3e}'.format(step)
+        # check if number of nodes exceeds the limit
+        NMAX = 40
+        if net.node_num > NMAX:
+            mex = "Your netlist includes more than {:d} nodes.\n".format(net.node_num)
+            mex += "The maximum allowed number on this bot is {:d}.\n".format(NMAX)
+            mex += "Please reduce the number of nodes or take a look to the computational core of this bot "
+            mex += "that does not have this limitation:\n"
+            mex += "[SpicePy project](https://github.com/giaccone/SpicePy)"
 
-                mex = "Your netlits defines a '.tran' analysis with *{:d}* samples\n".format(int(Nsamples))
-                mex += "Since this bot runs on a limited hardware shared by many users\n"
-                mex += "The analysis has been limited to *2000* samples:\n"
-                mex += "`.tran " + net.analysis[1] + " " + net.analysis[-1] + "`"
-
-
-                bot.send_message(chat_id=update.message.chat_id,
-                                 text=mex,
-                                 parse_mode=telegram.ParseMode.MARKDOWN)
-        # solve the network
-        net_solve(net)
-
-        # excluding transient analysis, compute branch quantities
-        if net.analysis[0].lower() != '.tran':
-            net.branch_voltage()
-            net.branch_current()
-            net.branch_power()
-
-        # get configurations for '.ac' problems
-        if net.analysis[0] == '.ac':
-            fname = './users/' + str(update.message.chat_id) + '.cnf'
-            fid = open(fname, 'r')
-            flag = fid.readline()
-            polar = flag == 'True'
         else:
-            polar = False
 
-        # excluding transient analysis, prepare mex to be printed
-        if net.analysis[0].lower() != '.tran':
-            mex = net.print(polar=polar, message=True)
-            mex = mex.replace('==============================================\n'
-                              '               branch quantities'
-                              '\n==============================================\n', '*branch quantities*\n`')
-            mex = mex.replace('----------------------------------------------', '')
-            mex += '`'
-        elif net.analysis[0].lower() == '.tran':
-            hf = net.plot(to_file=True, filename='./users/tran_plot_' + str(update.message.chat_id) + '.png',dpi_value=150)
-            mex = None
-            plt.close(hf)
+            # limit sample for .tran to 2000 (max)
+            if net.analysis[0] == '.tran':
+                Nsamples = float(net.analysis[2]) / float(net.analysis[1])
+                if Nsamples > 2000:
+                    step = float(net.analysis[2])/1999
+                    net.analysis[1] = '{:.3e}'.format(step)
 
-        # Log every time a network is solved
-        # To make stat it is saved the type of network and the UserID
-        logINFO.info('Analysis: ' + net.analysis[0] + ' - UserID: ' + str(update.effective_user.id))
+                    mex = "Your netlits defines a '.tran' analysis with *{:d}* samples\n".format(int(Nsamples))
+                    mex += "Since this bot runs on a limited hardware shared by many users\n"
+                    mex += "The analysis has been limited to *2000* samples:\n"
+                    mex += "`.tran " + net.analysis[1] + " " + net.analysis[-1] + "`"
+
+
+                    bot.send_message(chat_id=update.message.chat_id,
+                                     text=mex,
+                                     parse_mode=telegram.ParseMode.MARKDOWN)
+            # solve the network
+            net_solve(net)
+
+            # excluding transient analysis, compute branch quantities
+            if net.analysis[0].lower() != '.tran':
+                net.branch_voltage()
+                net.branch_current()
+                net.branch_power()
+
+            # get configurations for '.ac' problems
+            if net.analysis[0] == '.ac':
+                fname = './users/' + str(update.message.chat_id) + '.cnf'
+                fid = open(fname, 'r')
+                flag = fid.readline()
+                polar = flag == 'True'
+            else:
+                polar = False
+
+            # excluding transient analysis, prepare mex to be printed
+            if net.analysis[0].lower() != '.tran':
+                mex = net.print(polar=polar, message=True)
+                mex = mex.replace('==============================================\n'
+                                  '               branch quantities'
+                                  '\n==============================================\n', '*branch quantities*\n`')
+                mex = mex.replace('----------------------------------------------', '')
+                mex += '`'
+            elif net.analysis[0].lower() == '.tran':
+                hf = net.plot(to_file=True, filename='./users/tran_plot_' + str(update.message.chat_id) + '.png',dpi_value=150)
+                mex = None
+                plt.close(hf)
+
+            # Log every time a network is solved
+            # To make stat it is saved the type of network and the UserID
+            logINFO.info('Analysis: ' + net.analysis[0] + ' - UserID: ' + str(update.effective_user.id))
 
         return mex
 
