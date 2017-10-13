@@ -350,21 +350,31 @@ def reply(bot, update):
 # complex_repr - toggle polar/cartesian
 # =========================================
 def complex_repr(bot, update):
+    if not os.path.exists('./users/' + str(update.message.chat_id) + '.cnf'):
+        # get configurations
+        fname = './users/' + str(update.message.chat_id) + '.cnf'
+        fid = open(fname, 'r')
+        flag = fid.readline()[:-1]  # read nodal_pot conf
+        nodal_pot = flag == 'True'
+        flag = fid.readline()  # read polar conf
+        polar = flag == 'True'
 
-    # get configurations
-    fname = './users/' + str(update.message.chat_id) + '.cnf'
-    fid = open(fname, 'r')
-    flag = fid.readline()[:-1]  # read nodal_pot conf
-    nodal_pot = flag == 'True'
-    flag = fid.readline()  # read polar conf
-    polar = flag == 'True'
+        # keep nodal pot and toggle polar
+        fname = './users/' + str(update.message.chat_id) + '.cnf'
+        fid = open(fname, 'w')
+        fid.write(str(nodal_pot) + '\n')
+        fid.write(str(not polar))
+        fid.close()
+    else:
+        nodal_pot = False
+        polar = False
 
-    # keep nodal pot and toggle polar
-    fname = './users/' + str(update.message.chat_id) + '.cnf'
-    fid = open(fname, 'w')
-    fid.write(str(nodal_pot) + '\n')
-    fid.write(str(not polar))
-    fid.close()
+        # switch nodal pot keep polar
+        fname = './users/' + str(update.message.chat_id) + '.cnf'
+        fid = open(fname, 'w')
+        fid.write(str(not nodal_pot) + '\n')
+        fid.write(str(polar))
+        fid.close()
 
     # notify user
     if polar:
@@ -378,20 +388,31 @@ def complex_repr(bot, update):
 # =========================================
 def nodal_pot(bot, update):
 
-    # get configurations
-    fname = './users/' + str(update.message.chat_id) + '.cnf'
-    fid = open(fname, 'r')
-    flag = fid.readline()[:-1]  # read nodal_pot conf
-    nodal_pot = flag == 'True'
-    flag = fid.readline()  # read polar conf
-    polar = flag == 'True'
+    if not os.path.exists('./users/' + str(update.message.chat_id) + '.cnf'):
+        # get configurations
+        fname = './users/' + str(update.message.chat_id) + '.cnf'
+        fid = open(fname, 'r')
+        flag = fid.readline()[:-1]  # read nodal_pot conf
+        nodal_pot = flag == 'True'
+        flag = fid.readline()  # read polar conf
+        polar = flag == 'True'
 
-    # switch nodal pot keep polar
-    fname = './users/' + str(update.message.chat_id) + '.cnf'
-    fid = open(fname, 'w')
-    fid.write(str(not nodal_pot) + '\n')
-    fid.write(str(polar))
-    fid.close()
+        # switch nodal pot keep polar
+        fname = './users/' + str(update.message.chat_id) + '.cnf'
+        fid = open(fname, 'w')
+        fid.write(str(not nodal_pot) + '\n')
+        fid.write(str(polar))
+        fid.close()
+    else:
+        nodal_pot = False
+        polar = False
+
+        # switch nodal pot keep polar
+        fname = './users/' + str(update.message.chat_id) + '.cnf'
+        fid = open(fname, 'w')
+        fid.write(str(not nodal_pot) + '\n')
+        fid.write(str(polar))
+        fid.close()
 
     # notify user
     if nodal_pot:
