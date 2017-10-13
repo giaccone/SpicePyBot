@@ -350,7 +350,7 @@ def reply(bot, update):
 # complex_repr - toggle polar/cartesian
 # =========================================
 def complex_repr(bot, update):
-    if not os.path.exists('./users/' + str(update.message.chat_id) + '.cnf'):
+    if os.path.exists('./users/' + str(update.message.chat_id) + '.cnf'):
         # get configurations
         fname = './users/' + str(update.message.chat_id) + '.cnf'
         fid = open(fname, 'r')
@@ -388,7 +388,7 @@ def complex_repr(bot, update):
 # =========================================
 def nodal_pot(bot, update):
 
-    if not os.path.exists('./users/' + str(update.message.chat_id) + '.cnf'):
+    if os.path.exists('./users/' + str(update.message.chat_id) + '.cnf'):
         # get configurations
         fname = './users/' + str(update.message.chat_id) + '.cnf'
         fid = open(fname, 'r')
