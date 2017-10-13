@@ -9,6 +9,7 @@ import sys
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import numpy as np
 
 # ===================
 # module from SpicePy
@@ -21,11 +22,6 @@ from netsolve import net_solve
 # ==========================
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 import telegram as telegram
-
-# ===============================
-# global variables initialization
-# ===============================
-polar = False
 
 # ===============================
 # create necessary folders
@@ -89,8 +85,6 @@ def get_solution(fname, bot, update):
         * mex:  solution formatted in a string
     """
     try:
-        global polar
-
         # create network and solve it
         net = ntl.Network(fname)
 
@@ -130,13 +124,16 @@ def get_solution(fname, bot, update):
                 net.branch_current()
                 net.branch_power()
 
-            # get configurations for '.ac' problems
-            if net.analysis[0] == '.ac':
-                fname = './users/' + str(update.message.chat_id) + '.cnf'
-                fid = open(fname, 'r')
-                flag = fid.readline()
-                polar = flag == 'True'
-            else:
+            # get configurations
+            fname = './users/' + str(update.message.chat_id) + '.cnf'
+            fid = open(fname, 'r')
+            flag = fid.readline()[:-1]  # read nodal_pot conf
+            nodal_pot = flag == 'True'
+            flag = fid.readline()      # read polar conf
+            polar = flag == 'True'
+
+            if net.analysis[0] == '.op':
+                # forcepolar to False for .op problems
                 polar = False
 
             # excluding transient analysis, prepare mex to be printed
@@ -147,6 +144,30 @@ def get_solution(fname, bot, update):
                                   '\n==============================================\n', '*branch quantities*\n`')
                 mex = mex.replace('----------------------------------------------', '')
                 mex += '`'
+
+                # if the user wants node potentials add it to mex
+                if nodal_pot:
+                    # create local dictionary node-number 2 node-label
+                    num2node_label = {num: name for name, num in net.node_label2num.items() if name != '0'}
+
+                    # compute the node potentials
+                    mex0 = '*node potentials*\n`'
+                    for num in num2node_label:
+                        voltage = net.get_voltage('(' + num2node_label[num] + ')')[0]
+                        if polar:
+                            mex0 += 'v(' + num2node_label[num] + ') = {:10.4f} V < {:10.4f}°\n'.format(np.abs(voltage),np.angle(voltage) * 180 / np.pi)
+                        else:
+                            mex0 += 'v(' + num2node_label[num] + ') = {:10.4f} V\n'.format(voltage)
+
+
+                    # add newline
+                    mex0 += '`\n\n'
+
+                    # add node potentials before branch quantities
+                    mex = mex0 + mex
+
+
+
             elif net.analysis[0].lower() == '.tran':
                 hf = net.plot(to_file=True, filename='./users/tran_plot_' + str(update.message.chat_id) + '.png',dpi_value=150)
                 mex = None
@@ -198,7 +219,8 @@ def start(bot, update):
                      parse_mode=telegram.ParseMode.MARKDOWN, disable_web_page_preview=True)
     fname = './users/' + str(update.message.chat_id) + '.cnf'
     fid = open(fname, 'w')
-    fid.write('False')
+    fid.write('False\n')  # this is for the node potential
+    fid.write('False')  # this is for the polar flag
     fid.close()
 
 
@@ -211,7 +233,8 @@ def catch_netlist(bot, update):
     if not os.path.exists('./users/' + str(update.message.chat_id) + '.cnf'):
         fname = './users/' + str(update.message.chat_id) + '.cnf'
         fid = open(fname, 'w')
-        fid.write('False')
+        fid.write('False\n')    # this is for the node potential
+        fid.write('False')      # this is for the polar flag
         fid.close()
 
     # catch the netlist from file
@@ -273,7 +296,8 @@ def netlist(bot, update):
     if not os.path.exists('./users/' + str(update.message.chat_id) + '.cnf'):
         fname = './users/' + str(update.message.chat_id) + '.cnf'
         fid = open(fname, 'w')
-        fid.write('False')
+        fid.write('False\n')  # this is for the node potential
+        fid.write('False')    # this is for the polar flag
         fid.close()
 
     open("./users/" + str(update.message.chat_id) + "_waitnetlist", 'w').close()
@@ -323,24 +347,57 @@ def reply(bot, update):
 
 
 # =========================================
-# unknown - catch any wrong command
+# complex_repr - toggle polar/cartesian
 # =========================================
 def complex_repr(bot, update):
-    global polar
-    if polar is True:
-        polar = False
+
+    # get configurations
+    fname = './users/' + str(update.message.chat_id) + '.cnf'
+    fid = open(fname, 'r')
+    flag = fid.readline()[:-1]  # read nodal_pot conf
+    nodal_pot = flag == 'True'
+    flag = fid.readline()  # read polar conf
+    polar = flag == 'True'
+
+    # keep nodal pot and toggle polar
+    fname = './users/' + str(update.message.chat_id) + '.cnf'
+    fid = open(fname, 'w')
+    fid.write(str(nodal_pot) + '\n')
+    fid.write(str(not polar))
+    fid.close()
+
+    # notify user
+    if polar:
         bot.send_message(chat_id=update.message.chat_id, text="Switched to cartesian representation")
-        fname = './users/' + str(update.message.chat_id) + '.cnf'
-        fid = open(fname, 'w')
-        fid.write('False')
-        fid.close()
     else:
-        polar = True
         bot.send_message(chat_id=update.message.chat_id, text="Switched to polar representation")
-        fname = './users/' + str(update.message.chat_id) + '.cnf'
-        fid = open(fname, 'w')
-        fid.write('True')
-        fid.close()
+
+
+# =========================================
+# nodal_pot - toggle node potentials in output
+# =========================================
+def nodal_pot(bot, update):
+
+    # get configurations
+    fname = './users/' + str(update.message.chat_id) + '.cnf'
+    fid = open(fname, 'r')
+    flag = fid.readline()[:-1]  # read nodal_pot conf
+    nodal_pot = flag == 'True'
+    flag = fid.readline()  # read polar conf
+    polar = flag == 'True'
+
+    # switch nodal pot keep polar
+    fname = './users/' + str(update.message.chat_id) + '.cnf'
+    fid = open(fname, 'w')
+    fid.write(str(not nodal_pot) + '\n')
+    fid.write(str(polar))
+    fid.close()
+
+    # notify user
+    if nodal_pot:
+        bot.send_message(chat_id=update.message.chat_id, text="Node potentials removed from results")
+    else:
+        bot.send_message(chat_id=update.message.chat_id, text="Node potentials included in results")
 
 
 # =========================================
@@ -405,13 +462,17 @@ def main():
     complex_repr_handler = CommandHandler('complex_repr', complex_repr)
     dispatcher.add_handler(complex_repr_handler)
 
+    # /nodal_pot handler
+    nodal_pot_handler = CommandHandler('nodal_pot', nodal_pot)
+    dispatcher.add_handler(nodal_pot_handler)
+
     # /r - restart the bot
     dispatcher.add_handler(CommandHandler('r', restart))
 
     # /log - get log file
     dispatcher.add_handler(CommandHandler('log', log))
 
-    # /log - get stat file
+    # /stat - get stat file
     dispatcher.add_handler(CommandHandler('stat', stat))
 
     # reply to unknown commands
