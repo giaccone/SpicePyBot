@@ -311,7 +311,8 @@ def reply(bot, update):
             bot.send_photo(chat_id=update.message.chat_id, photo=open('./users/tran_plot_' + str(update.message.chat_id) + '.png', 'rb'))
 
         else:    # otherwise print results
-            mex = 'This is the circuit solution:\n\n' + mex
+            mex = 'Please remember that all components are analyzed with *passive sign convention*.\nHere you have  ' \
+                  '*the circuit solution*.\n\n' + mex
             bot.send_message(chat_id=update.message.chat_id, text=mex,
                              parse_mode=telegram.ParseMode.MARKDOWN)
 
