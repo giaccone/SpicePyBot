@@ -10,6 +10,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
+from base64 import b64encode
 
 # ===================
 # module from SpicePy
@@ -180,7 +181,16 @@ def get_solution(fname, bot, update):
         return mex
 
     except:
-        std_log.error('Netlist_Error - UserID: ' + str(update.effective_user.id))
+        # read network with issues
+        wrong_net = ''
+        with open(fname) as f:
+            for line in f:
+                wrong_net += line
+        wrong_net = wrong_net.replace('\n', '  /  ')
+        # base64 encoding
+        #net64encoded = b64encode(bytes("{}".format(wrong_net),'utf-8')).decode("utf-8")
+        # log error
+        std_log.error('UserID: ' + str(update.effective_user.id) + ' - Netlist error: ' + wrong_net)
         return "*Something went wrong with your netlist*.\nPlease check the netlist format."
 
 
