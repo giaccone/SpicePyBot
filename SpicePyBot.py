@@ -102,7 +102,7 @@ def get_solution(fname, bot, update):
         else:
 
             # limit sample for .tran to 2000 (max)
-            if net.analysis[0] == '.tran':
+            if net.analysis[0].lower() == '.tran':
                 Nsamples = float(net.analysis[2]) / float(net.analysis[1])
                 if Nsamples > 2000:
                     step = float(net.analysis[2])/1999
@@ -117,29 +117,57 @@ def get_solution(fname, bot, update):
                     bot.send_message(chat_id=update.message.chat_id,
                                      text=mex,
                                      parse_mode=telegram.ParseMode.MARKDOWN)
-            # solve the network
-            net_solve(net)
 
-            # excluding transient analysis, compute branch quantities
-            if net.analysis[0].lower() != '.tran':
-                net.branch_voltage()
-                net.branch_current()
-                net.branch_power()
+            # limit sample for .ac to 2000 (max)
+            elif net.analysis[0].lower() == '.ac':
+                # get frequencies
+                net.frequency_span()
+
+                if not np.isscalar(net.f):
+                    # get Nsamples
+                    Nsamples = len(net.f)
+                    # limit di 2000 max
+                    if Nsamples > 2000:
+                        scale = 2000 / Nsamples
+                        old_analysys = "`" + " ".join(net.analysis) + "`"
+                        net.analysis[2] = str(int(np.ceil(scale * float(net.analysis[2]))))
+                        new_analysys = "`" + " ".join(net.analysis) + "`"
+
+                        mex = "Your netlits defines a '.tran' analysis with *{:d}* samples\n".format(int(Nsamples))
+                        mex += "Since this bot runs on a limited hardware shared by many users\n"
+                        mex += "The analysis has been limited to *2000* samples:\n"
+                        mex += "original analysis: " + old_analysys + "\n"
+                        mex += "ner analysis: " + new_analysys + "\n"
+
+                        bot.send_message(chat_id=update.message.chat_id,
+                                         text=mex,
+                                         parse_mode=telegram.ParseMode.MARKDOWN)
 
             # get configurations
             fname = './users/' + str(update.message.chat_id) + '.cnf'
             fid = open(fname, 'r')
             flag = fid.readline()[:-1]  # read nodal_pot conf
             nodal_pot = flag == 'True'
-            flag = fid.readline()      # read polar conf
+            flag = fid.readline()[:-1]  # read polar conf
             polar = flag == 'True'
+            flag = fid.readline()  # read dB conf
+            dB = flag == 'True'
 
             if net.analysis[0] == '.op':
                 # forcepolar to False for .op problems
                 polar = False
 
-            # excluding transient analysis, prepare mex to be printed
-            if net.analysis[0].lower() != '.tran':
+            # solve the network
+            net_solve(net)
+
+            # .op and .ac (single-frequency): prepare mex to be printed
+            if (net.analysis[0].lower() == '.op') | ((net.analysis[0].lower() == '.ac') & (np.isscalar(net.f))):
+                # get branch quantities
+                net.branch_voltage()
+                net.branch_current()
+                net.branch_power()
+
+                # prepare message
                 mex = net.print(polar=polar, message=True)
                 mex = mex.replace('==============================================\n'
                                   '               branch quantities'
@@ -168,18 +196,25 @@ def get_solution(fname, bot, update):
                     # add node potentials before branch quantities
                     mex = mex0 + mex
 
-
-
             elif net.analysis[0].lower() == '.tran':
                 hf = net.plot(to_file=True, filename='./users/tran_plot_' + str(update.message.chat_id) + '.png',dpi_value=150)
                 mex = None
                 plt.close(hf)
 
+            elif net.analysis[0].lower() == '.ac':
+                hf = net.bode(to_file=True, decibel=dB, filename='./users/bode_plot_' + str(update.message.chat_id) + '.png', dpi_value=150)
+                mex = None
+                if isinstance(hf, list):
+                    for fig in hf:
+                        plt.close(fig)
+                else:
+                    plt.close(hf)
+
             # Log every time a network is solved
             # To make stat it is saved the type of network and the UserID
             logINFO.info('Analysis: ' + net.analysis[0] + ' - UserID: ' + str(update.effective_user.id))
 
-        return mex
+        return net, mex
 
     except:
         # read network with issues
@@ -231,7 +266,8 @@ def start(bot, update):
     fname = './users/' + str(update.message.chat_id) + '.cnf'
     fid = open(fname, 'w')
     fid.write('False\n')  # this is for the node potential
-    fid.write('False')  # this is for the polar flag
+    fid.write('False\n')  # this is for the polar flag
+    fid.write('False')    # this is for the decibel flag
     fid.close()
 
 
@@ -244,8 +280,9 @@ def catch_netlist(bot, update):
     if not os.path.exists('./users/' + str(update.message.chat_id) + '.cnf'):
         fname = './users/' + str(update.message.chat_id) + '.cnf'
         fid = open(fname, 'w')
-        fid.write('False\n')    # this is for the node potential
-        fid.write('False')      # this is for the polar flag
+        fid.write('False\n')  # this is for the node potential
+        fid.write('False\n')  # this is for the polar flag
+        fid.write('False')    # this is for the decibel flag
         fid.close()
 
     # catch the netlist from file
@@ -261,14 +298,26 @@ def catch_netlist(bot, update):
     bot.send_message(chat_id=update.message.chat_id, text=mex)
 
     # compute solution
-    mex = get_solution(fname, bot, update)
+    net, mex = get_solution(fname, bot, update)
 
     # typing
     bot.send_chat_action(chat_id=update.message.chat_id, action=telegram.ChatAction.TYPING)
 
-    if mex is None:    # in case of .tran mex is none, hence send the plot
-        bot.send_photo(chat_id=update.message.chat_id,
-                       photo=open('./users/tran_plot_' + str(update.message.chat_id) + '.png', 'rb'))
+    if mex is None:    # in case of .tran or .ac-multi-freq mex is none, hence send the plot
+        if net.analysis[0].lower() == '.tran':
+            bot.send_photo(chat_id=update.message.chat_id,
+                           photo=open('./users/tran_plot_' + str(update.message.chat_id) + '.png', 'rb'))
+        elif net.analysis[0].lower() == '.ac':
+            N = int(len(net.tf_cmd.split()[1:]) / 2)
+            if N == 1:
+                bot.send_photo(chat_id=update.message.chat_id,
+                               photo=open('./users/bode_plot_' + str(update.message.chat_id) + '.png', 'rb'))
+            else:
+                for k in range(N):
+                    bot.send_photo(chat_id=update.message.chat_id,
+                                   photo=open(
+                                       './users/bode_plot_' + str(update.message.chat_id) + '_' + str(k) + '.png',
+                                       'rb'))
 
     else:    # otherwise print results
         mex = 'Please remember that all components are analyzed with *passive sign convention*.\nHere you have  ' \
@@ -308,7 +357,8 @@ def netlist(bot, update):
         fname = './users/' + str(update.message.chat_id) + '.cnf'
         fid = open(fname, 'w')
         fid.write('False\n')  # this is for the node potential
-        fid.write('False')    # this is for the polar flag
+        fid.write('False\n')  # this is for the polar flag
+        fid.write('False')    # this is for the decibel flag
         fid.close()
 
     open("./users/" + str(update.message.chat_id) + "_waitnetlist", 'w').close()
@@ -338,13 +388,26 @@ def reply(bot, update):
         bot.send_message(chat_id=update.message.chat_id, text=mex)
 
         # compute solution
-        mex = get_solution(fname, bot, update)
+        net, mex = get_solution(fname, bot, update)
 
         # typing
         bot.send_chat_action(chat_id=update.message.chat_id, action=telegram.ChatAction.TYPING)
 
-        if mex is None:    # in case of .tran mex is none, hence send the plot
-            bot.send_photo(chat_id=update.message.chat_id, photo=open('./users/tran_plot_' + str(update.message.chat_id) + '.png', 'rb'))
+        if mex is None:  # in case of .tran or .ac-multi-freq mex is none, hence send the plot
+            if net.analysis[0].lower() == '.tran':
+                bot.send_photo(chat_id=update.message.chat_id,
+                               photo=open('./users/tran_plot_' + str(update.message.chat_id) + '.png', 'rb'))
+            elif net.analysis[0].lower() == '.ac':
+                N = int(len(net.tf_cmd.split()[1:]) / 2)
+                if N == 1:
+                    bot.send_photo(chat_id=update.message.chat_id,
+                                   photo=open('./users/bode_plot_' + str(update.message.chat_id) + '.png', 'rb'))
+                else:
+                    for k in range(N):
+                        bot.send_photo(chat_id=update.message.chat_id,
+                                       photo=open(
+                                           './users/bode_plot_' + str(update.message.chat_id) + '_' + str(k) + '.png',
+                                           'rb'))
 
         else:    # otherwise print results
             mex = 'Please remember that all components are analyzed with *passive sign convention*.\nHere you have  ' \
@@ -367,24 +430,26 @@ def complex_repr(bot, update):
         fid = open(fname, 'r')
         flag = fid.readline()[:-1]  # read nodal_pot conf
         nodal_pot = flag == 'True'
-        flag = fid.readline()  # read polar conf
+        flag = fid.readline()[:-1]  # read polar conf
         polar = flag == 'True'
+        flag = fid.readline()  # read dB conf
+        dB = flag == 'True'
 
         # keep nodal pot and toggle polar
         fname = './users/' + str(update.message.chat_id) + '.cnf'
         fid = open(fname, 'w')
         fid.write(str(nodal_pot) + '\n')
-        fid.write(str(not polar))
+        fid.write(str(not polar) + '\n')
+        fid.write(str(dB))
         fid.close()
     else:
-        nodal_pot = False
         polar = False
-
-        # switch nodal pot keep polar
+        # Initialize config file with polar = True (everything else False)
         fname = './users/' + str(update.message.chat_id) + '.cnf'
         fid = open(fname, 'w')
-        fid.write(str(not nodal_pot) + '\n')
-        fid.write(str(polar))
+        fid.write('False\n')  # this is for the node potential
+        fid.write(str(not polar) + '\n')  # this is for the polar flag
+        fid.write('False')  # this is for the decibel flag
         fid.close()
 
     # notify user
@@ -405,24 +470,27 @@ def nodal_pot(bot, update):
         fid = open(fname, 'r')
         flag = fid.readline()[:-1]  # read nodal_pot conf
         nodal_pot = flag == 'True'
-        flag = fid.readline()  # read polar conf
+        flag = fid.readline()[:-1]  # read polar conf
         polar = flag == 'True'
+        flag = fid.readline()  # read dB conf
+        dB = flag == 'True'
 
         # switch nodal pot keep polar
         fname = './users/' + str(update.message.chat_id) + '.cnf'
         fid = open(fname, 'w')
         fid.write(str(not nodal_pot) + '\n')
-        fid.write(str(polar))
+        fid.write(str(polar) + '\n')
+        fid.write(str(dB))
         fid.close()
     else:
         nodal_pot = False
-        polar = False
 
-        # switch nodal pot keep polar
+        # Initialize config file with nodal_pot = True (everything else False)
         fname = './users/' + str(update.message.chat_id) + '.cnf'
         fid = open(fname, 'w')
-        fid.write(str(not nodal_pot) + '\n')
-        fid.write(str(polar))
+        fid.write(str(not nodal_pot) + '\n')   # this is for the node potential
+        fid.write('False\n')   # this is for the polar flag
+        fid.write('False')  # this is for the decibel flag
         fid.close()
 
     # notify user
@@ -430,6 +498,47 @@ def nodal_pot(bot, update):
         bot.send_message(chat_id=update.message.chat_id, text="Node potentials removed from results")
     else:
         bot.send_message(chat_id=update.message.chat_id, text="Node potentials included in results")
+
+
+# =========================================
+# decibel - toggle decibel in bode plot
+# =========================================
+def decibel(bot, update):
+
+    if os.path.exists('./users/' + str(update.message.chat_id) + '.cnf'):
+        # get configurations
+        fname = './users/' + str(update.message.chat_id) + '.cnf'
+        fid = open(fname, 'r')
+        flag = fid.readline()[:-1]  # read nodal_pot conf
+        nodal_pot = flag == 'True'
+        flag = fid.readline()[:-1]  # read polar conf
+        polar = flag == 'True'
+        flag = fid.readline()  # read dB conf
+        dB = flag == 'True'
+
+        # switch nodal pot keep polar
+        fname = './users/' + str(update.message.chat_id) + '.cnf'
+        fid = open(fname, 'w')
+        fid.write(str(nodal_pot) + '\n')
+        fid.write(str(polar) + '\n')
+        fid.write(str(not dB))
+        fid.close()
+    else:
+        dB = False
+
+        # Initialize config file with dB = True (everything else False)
+        fname = './users/' + str(update.message.chat_id) + '.cnf'
+        fid = open(fname, 'w')
+        fid.write('False\n')   # this is for the node potential
+        fid.write('False\n')   # this is for the polar flag
+        fid.write(str(not dB))  # this is for the decibel flag
+        fid.close()
+
+    # notify user
+    if dB:
+        bot.send_message(chat_id=update.message.chat_id, text="bode plot: decibel disabled")
+    else:
+        bot.send_message(chat_id=update.message.chat_id, text="bode plot: decibel enabled")
 
 
 # =========================================
@@ -505,7 +614,7 @@ def unknown(bot, update):
 
 def main():
     # set TOKEN and initialization
-    fname = './admin_only/SpicePyBot_token.txt'
+    fname = './admin_only/MeaninglessBot_token.txt'
     updater = Updater(token=read_token(fname))
     dispatcher = updater.dispatcher
 
@@ -535,6 +644,10 @@ def main():
     # /nodal_pot handler
     nodal_pot_handler = CommandHandler('nodal_pot', nodal_pot)
     dispatcher.add_handler(nodal_pot_handler)
+
+    # /decibel handler
+    decibel_handler = CommandHandler('decibel', decibel)
+    dispatcher.add_handler(decibel_handler)
 
     # /r - restart the bot
     dispatcher.add_handler(CommandHandler('r', restart))
