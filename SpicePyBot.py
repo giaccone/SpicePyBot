@@ -10,7 +10,6 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
-from base64 import b64encode
 
 # ===================
 # module from SpicePy
@@ -37,6 +36,7 @@ fid = open('./admin_only/admin_list.txt', 'r')
 LIST_OF_ADMINS = [int(adm) for adm in fid.readline().split()]
 fid.close()
 
+
 # ==========================
 # Logging
 # ==========================
@@ -47,6 +47,7 @@ class MyFilter(object):
 
     def filter(self, logRecord):
         return logRecord.levelno <= self.__level
+
 
 # formatter
 fmt = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -64,6 +65,7 @@ std_log = logging.getLogger('std_log')
 h2 = logging.FileHandler('SpicePyBot.log')
 h2.setFormatter(fmt)
 std_log.addHandler(h2)
+
 
 # ==========================
 # useful functions
@@ -217,17 +219,18 @@ def get_solution(fname, bot, update):
         return net, mex
 
     except:
+        # set network to None
+        net = None
         # read network with issues
         wrong_net = ''
         with open(fname) as f:
             for line in f:
                 wrong_net += line
         wrong_net = wrong_net.replace('\n', '  /  ')
-        # base64 encoding
-        #net64encoded = b64encode(bytes("{}".format(wrong_net),'utf-8')).decode("utf-8")
+
         # log error
         std_log.error('UserID: ' + str(update.effective_user.id) + ' - Netlist error: ' + wrong_net)
-        return "*Something went wrong with your netlist*.\nPlease check the netlist format."
+        return net, "*Something went wrong with your netlist*.\nPlease check the netlist format."
 
 
 # ==========================
@@ -606,15 +609,84 @@ def stat(bot, update):
 
 
 # =========================================
+# send2all - send message to all users
+# =========================================
+@restricted
+def send2all(bot, update):
+
+    # read all users from StatBot.log
+    user = []
+    with open('./StatBot.log') as fid:
+        for line in fid:
+            ele = line.split(' - ')
+            user.append(int(ele[4].replace('UserID: ', '')))
+
+    # convert to numpy array
+    user = np.unique(np.array(user))
+
+    # merge them with the user database
+    if os.path.exists('./users/users_database.db'):
+        user_db = []
+        with open('./users/users_database.db', 'r') as fid:
+            for line in fid:
+                user_db.append(int(line))
+
+        user_db = np.unique(np.array(user_db))
+        user = np.unique(np.concatenate((user, user_db)))
+        np.savetxt('./users/users_database.db', user, fmt="%s")
+    else:
+        np.savetxt('./users/users_database.db', user, fmt="%s")
+
+    # get the message to be sent
+    fid = open('./admin_only/message.txt')
+    msg = fid.read()
+    fid.close()
+
+    # send to all user
+    for id in user:
+        chat_id = int(id)
+        bot.send_message(chat_id=chat_id,
+                         text=msg,
+                         parse_mode=telegram.ParseMode.MARKDOWN, disable_web_page_preview=True)
+
+
+# =========================================
+# send2admin - send message to all admins
+# =========================================
+@restricted
+def send2admin(bot, update):
+
+    # get admin list
+    fid = open('./admin_only/admin_list.txt', 'r')
+    ADMIN_LIST = [int(adm) for adm in fid.readline().split()]
+    fid.close()
+
+    # get the message to be sent
+    fid = open('./admin_only/message.txt')
+    msg = fid.read()
+    fid.close()
+
+    # send to all user
+    for id in ADMIN_LIST:
+        chat_id = int(id)
+        bot.send_message(chat_id=chat_id,
+                         text=msg,
+                         parse_mode=telegram.ParseMode.MARKDOWN, disable_web_page_preview=True)
+
+
+# =========================================
 # unknown - catch any wrong command
 # =========================================
 def unknown(bot, update):
     bot.send_message(chat_id=update.message.chat_id, text="Sorry, I didn't understand that command.")
 
 
+# =========================================
+# bot - main
+# =========================================
 def main():
     # set TOKEN and initialization
-    fname = './admin_only/MeaninglessBot_token.txt'
+    fname = './admin_only/SpicePyBot_token.txt'
     updater = Updater(token=read_token(fname))
     dispatcher = updater.dispatcher
 
@@ -622,7 +694,7 @@ def main():
     start_handler = CommandHandler('start', start)
     dispatcher.add_handler(start_handler)
 
-    # chatch netlist when sent to the BOT
+    # catch netlist when sent to the BOT
     dispatcher.add_handler(MessageHandler(Filters.document, catch_netlist))
 
     # /help handler
@@ -658,6 +730,12 @@ def main():
     # /stat - get stat file
     dispatcher.add_handler(CommandHandler('stat', stat))
 
+    # send2all - send message to all users
+    dispatcher.add_handler(CommandHandler('send2all', send2all))
+
+    # /send2admin - send message to all admins
+    dispatcher.add_handler(CommandHandler('send2admin', send2admin))
+
     # reply to unknown commands
     unknown_handler = MessageHandler(Filters.command, unknown)
     dispatcher.add_handler(unknown_handler)
@@ -668,6 +746,7 @@ def main():
     # SIGABRT. This should be used most of the time, since start_polling() is
     # non-blocking and will stop the bot gracefully.
     updater.idle()
+
 
 if __name__ == '__main__':
     main()
