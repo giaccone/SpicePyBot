@@ -643,7 +643,22 @@ def send2all(bot, update):
     fid.close()
 
     # send to all user
+    cnt = 0
     for id in user:
+        chat_id = int(id)
+        bot.send_message(chat_id=chat_id,
+                         text=msg,
+                         parse_mode=telegram.ParseMode.MARKDOWN, disable_web_page_preview=True)
+        cnt += 1
+
+    # get admin list
+    fid = open('./admin_only/admin_list.txt', 'r')
+    ADMIN_LIST = [int(adm) for adm in fid.readline().split()]
+    fid.close()
+
+    msg = "*{} users* (you included) notified with the above message.".format(cnt)
+    # send to all admins
+    for id in ADMIN_LIST:
         chat_id = int(id)
         bot.send_message(chat_id=chat_id,
                          text=msg,
@@ -666,7 +681,7 @@ def send2admin(bot, update):
     msg = fid.read()
     fid.close()
 
-    # send to all user
+    # send to all admins
     for id in ADMIN_LIST:
         chat_id = int(id)
         bot.send_message(chat_id=chat_id,
