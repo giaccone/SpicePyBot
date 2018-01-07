@@ -651,12 +651,15 @@ def send2all(bot, update):
                          parse_mode=telegram.ParseMode.MARKDOWN, disable_web_page_preview=True)
         cnt += 1
 
+    # print on screen
+    msg = "*{} users* (you included) notified with the above message.".format(cnt)
+    print(msg + '\n')
+
     # get admin list
     fid = open('./admin_only/admin_list.txt', 'r')
     ADMIN_LIST = [int(adm) for adm in fid.readline().split()]
     fid.close()
 
-    msg = "*{} users* (you included) notified with the above message.".format(cnt)
     # send to all admins
     for id in ADMIN_LIST:
         chat_id = int(id)
