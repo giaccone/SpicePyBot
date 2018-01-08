@@ -52,19 +52,25 @@ class MyFilter(object):
 # formatter
 fmt = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-# stat log
-logINFO = logging.getLogger('logINFO')
+# StatLog: log how the log is used (only INFO)
+StatLog = logging.getLogger('StatLog')
 h1 = logging.FileHandler('StatBot.log')
 h1.setFormatter(fmt)
-logINFO.addHandler(h1)
-logINFO.setLevel(logging.INFO)
-logINFO.addFilter(MyFilter(logging.INFO))
+StatLog.addHandler(h1)
+StatLog.setLevel(logging.INFO)
+StatLog.addFilter(MyFilter(logging.INFO))
 
-# standard log >= WARNING
-std_log = logging.getLogger('std_log')
-h2 = logging.FileHandler('SpicePyBot.log')
+# SolverLog: catch error in the netlist (>= WARNING)
+SolverLog = logging.getLogger('SolverLog')
+h2 = logging.FileHandler('SolverLog.log')
 h2.setFormatter(fmt)
-std_log.addHandler(h2)
+SolverLog.addHandler(h2)
+
+# OtherLog: catch all other error using the dispatcher (>= WARNING)
+OtherLog = logging.getLogger('OtherLog')
+h3 = logging.FileHandler('OtherLog.log')
+h3.setFormatter(fmt)
+OtherLog.addHandler(h3)
 
 
 # ==========================
@@ -76,6 +82,11 @@ def read_token(filename):
     with open(filename) as f:
         token = f.readline().replace('\n', '')
     return token
+
+
+# error_callback to log uncaught error
+def error_callback(bot, update, error):
+    OtherLog.error("Update {} caused error {}".format(update, error))
 
 
 # compute the solution
@@ -214,7 +225,7 @@ def get_solution(fname, bot, update):
 
             # Log every time a network is solved
             # To make stat it is saved the type of network and the UserID
-            logINFO.info('Analysis: ' + net.analysis[0] + ' - UserID: ' + str(update.effective_user.id))
+            StatLog.info('Analysis: ' + net.analysis[0] + ' - UserID: ' + str(update.effective_user.id))
 
         return net, mex
 
@@ -229,7 +240,7 @@ def get_solution(fname, bot, update):
         wrong_net = wrong_net.replace('\n', '  /  ')
 
         # log error
-        std_log.error('UserID: ' + str(update.effective_user.id) + ' - Netlist error: ' + wrong_net)
+        SolverLog.error('UserID: ' + str(update.effective_user.id) + ' - Netlist error: ' + wrong_net)
         return net, "*Something went wrong with your netlist*.\nPlease check the netlist format."
 
 
@@ -559,7 +570,7 @@ def restart(bot, update):
 # =========================================
 @restricted
 def log(bot, update):
-    bot.send_document(chat_id=update.message.chat_id, document=open('./SpicePyBot.log', 'rb'))
+    bot.send_document(chat_id=update.message.chat_id, document=open('./SolverLog.log', 'rb'))
 
 
 # =========================================
@@ -743,7 +754,7 @@ def main():
     netlist_handler = CommandHandler('netlist', netlist)
     dispatcher.add_handler(netlist_handler)
 
-    # reply to random message
+    # reply to random message or get netlist after /netlist
     reply_handler = MessageHandler(Filters.text, reply)
     dispatcher.add_handler(reply_handler)
 
@@ -768,7 +779,7 @@ def main():
     # /stat - get stat file
     dispatcher.add_handler(CommandHandler('stat', stat))
 
-    # send2all - send message to all users
+    # /send2all - send message to all users
     dispatcher.add_handler(CommandHandler('send2all', send2all))
 
     # /send2admin - send message to all admins
@@ -777,6 +788,9 @@ def main():
     # reply to unknown commands
     unknown_handler = MessageHandler(Filters.command, unknown)
     dispatcher.add_handler(unknown_handler)
+
+    # log every uncaught error with error handler
+    dispatcher.add_error_handler(error_callback)
 
     # start the BOT
     updater.start_polling()
