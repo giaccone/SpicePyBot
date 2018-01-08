@@ -643,29 +643,43 @@ def send2all(bot, update):
     fid.close()
 
     # send to all user
-    cnt = 0
+    cnt_sent = 0
+    cnt_not_sent = 0
     for id in user:
         chat_id = int(id)
-        bot.send_message(chat_id=chat_id,
-                         text=msg,
-                         parse_mode=telegram.ParseMode.MARKDOWN, disable_web_page_preview=True)
-        cnt += 1
+        # try to send the message
+        try:
+            bot.send_message(chat_id=chat_id,
+                             text=msg,
+                             parse_mode=telegram.ParseMode.MARKDOWN, disable_web_page_preview=True)
+            cnt_sent += 1
+
+        # if the user closed the bot, cacth exception and update cnt_not_sent
+        except telegram.error.TelegramError:
+            cnt_not_sent += 1
 
     # print on screen
-    msg = "*{} users* (you included) notified with the above message.".format(cnt)
-    print(msg + '\n')
+    msg = "*{} users* notified with the above message.\n".format(cnt_sent)
+    msg += "*{} users* not notified (bot is inactive).".format(cnt_not_sent)
 
     # get admin list
     fid = open('./admin_only/admin_list.txt', 'r')
     ADMIN_LIST = [int(adm) for adm in fid.readline().split()]
     fid.close()
 
-    # send to all admins
+    # send to all admins stat about message sent
     for id in ADMIN_LIST:
         chat_id = int(id)
-        bot.send_message(chat_id=chat_id,
-                         text=msg,
-                         parse_mode=telegram.ParseMode.MARKDOWN, disable_web_page_preview=True)
+
+        # try to send the message
+        try:
+            bot.send_message(chat_id=chat_id,
+                             text=msg,
+                             parse_mode=telegram.ParseMode.MARKDOWN, disable_web_page_preview=True)
+
+        # if the admin closed the bot don't care about the exception
+        except telegram.error.TelegramError:
+            pass
 
 
 # =========================================
@@ -687,9 +701,15 @@ def send2admin(bot, update):
     # send to all admins
     for id in ADMIN_LIST:
         chat_id = int(id)
-        bot.send_message(chat_id=chat_id,
-                         text=msg,
-                         parse_mode=telegram.ParseMode.MARKDOWN, disable_web_page_preview=True)
+        # try to send the message
+        try:
+            bot.send_message(chat_id=chat_id,
+                             text=msg,
+                             parse_mode=telegram.ParseMode.MARKDOWN, disable_web_page_preview=True)
+
+        # if the admin closed the bot don't care about the exception
+        except telegram.error.TelegramError:
+            pass
 
 
 # =========================================
