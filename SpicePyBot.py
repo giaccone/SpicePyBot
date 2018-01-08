@@ -571,6 +571,7 @@ def restart(bot, update):
 @restricted
 def log(bot, update):
     bot.send_document(chat_id=update.message.chat_id, document=open('./SolverLog.log', 'rb'))
+    bot.send_document(chat_id=update.message.chat_id, document=open('./OtherLog.log', 'rb'))
 
 
 # =========================================
