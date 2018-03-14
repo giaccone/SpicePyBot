@@ -116,9 +116,9 @@ def get_solution(fname, bot, update):
 
             # limit sample for .tran to 2000 (max)
             if net.analysis[0].lower() == '.tran':
-                Nsamples = float(net.analysis[2]) / float(net.analysis[1])
+                Nsamples = float(net.convert_unit(net.analysis[2])) / float(net.convert_unit(net.analysis[1]))
                 if Nsamples > 2000:
-                    step = float(net.analysis[2])/1999
+                    step = float(net.convert_unit(net.analysis[2]))/1999
                     net.analysis[1] = '{:.3e}'.format(step)
 
                     mex = "Your netlits defines a '.tran' analysis with *{:d}* samples\n".format(int(Nsamples))
@@ -143,7 +143,7 @@ def get_solution(fname, bot, update):
                     if Nsamples > 2000:
                         scale = 2000 / Nsamples
                         old_analysys = "`" + " ".join(net.analysis) + "`"
-                        net.analysis[2] = str(int(np.ceil(scale * float(net.analysis[2]))))
+                        net.analysis[2] = str(int(np.ceil(scale * float(net.convert_unit(net.analysis[2])))))
                         new_analysys = "`" + " ".join(net.analysis) + "`"
 
                         mex = "Your netlits defines a '.tran' analysis with *{:d}* samples\n".format(int(Nsamples))
