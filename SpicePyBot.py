@@ -260,8 +260,26 @@ def restricted(func):
 
 
 # ==========================
+# block group decorator
+# ==========================
+def block_group(func):
+    @wraps(func)
+    def wrapped(bot, update, *args, **kwargs):
+        # skip requests from groups
+        if update.message.chat_id < 0:
+            mex = "This bot is for personal use only.\n"
+            mex += "*Please remove it from this group*\n"
+            bot.send_message(chat_id=update.message.chat_id, text=mex,
+                             parse_mode=telegram.ParseMode.MARKDOWN, disable_web_page_preview=True)
+            return
+        return func(bot, update, *args, **kwargs)
+    return wrapped
+
+
+# ==========================
 # start - welcome message
 # ==========================
+@block_group
 def start(bot, update):
     msg = "*Welcome to SpicePyBot*.\n\n"
     msg += "It allows you to solve linear:\n"
@@ -288,6 +306,7 @@ def start(bot, update):
 # =========================================
 # catch netlist from a file sent to the bot
 # =========================================
+@block_group
 def catch_netlist(bot, update):
 
     # if current user don't have cnf file create it
@@ -343,6 +362,7 @@ def catch_netlist(bot, update):
 # ==========================
 # help - short guide
 # ==========================
+@block_group
 def help(bot, update):
     msg = "*Very short guide*.\n\n" #1)upload a file with the netlist (don't know what a netlist is? Run `/tutorial` in the bot)\n2) enjoy\n\n\n*If you need a more detailed guide*\nRun `/tutorial` in the bot"
     msg += "The Bot makes use of netlists to describe circuits. If you do not know what "
@@ -364,6 +384,7 @@ def help(bot, update):
 # =========================================
 # netlist - write te netlist in the BOT
 # =========================================
+@block_group
 def netlist(bot, update):
 
     # if current user don't have cnf file create it
@@ -382,6 +403,7 @@ def netlist(bot, update):
 # =========================================
 # reply - catch any message and reply to it
 # =========================================
+@block_group
 def reply(bot, update):
     # check call to /netlist
     if os.path.exists("./users/" + str(update.message.chat_id) + "_waitnetlist"):
@@ -437,6 +459,7 @@ def reply(bot, update):
 # =========================================
 # complex_repr - toggle polar/cartesian
 # =========================================
+@block_group
 def complex_repr(bot, update):
     if os.path.exists('./users/' + str(update.message.chat_id) + '.cnf'):
         # get configurations
@@ -476,6 +499,7 @@ def complex_repr(bot, update):
 # =========================================
 # nodal_pot - toggle node potentials in output
 # =========================================
+@block_group
 def nodal_pot(bot, update):
 
     if os.path.exists('./users/' + str(update.message.chat_id) + '.cnf'):
@@ -517,6 +541,7 @@ def nodal_pot(bot, update):
 # =========================================
 # decibel - toggle decibel in bode plot
 # =========================================
+@block_group
 def decibel(bot, update):
 
     if os.path.exists('./users/' + str(update.message.chat_id) + '.cnf'):
@@ -558,6 +583,7 @@ def decibel(bot, update):
 # =========================================
 # restart - restart the BOT
 # =========================================
+@block_group
 @restricted
 def restart(bot, update):
     bot.send_message(update.message.chat_id, "Bot is restarting...")
@@ -568,6 +594,7 @@ def restart(bot, update):
 # =========================================
 # log - get log
 # =========================================
+@block_group
 @restricted
 def log(bot, update):
     bot.send_document(chat_id=update.message.chat_id, document=open('./SolverLog.log', 'rb'))
@@ -577,6 +604,7 @@ def log(bot, update):
 # =========================================
 # stat - get stat
 # =========================================
+@block_group
 @restricted
 def stat(bot, update):
     bot.send_document(chat_id=update.message.chat_id, document=open('./StatBot.log', 'rb'))
@@ -623,6 +651,7 @@ def stat(bot, update):
 # =========================================
 # send2all - send message to all users
 # =========================================
+@block_group
 @restricted
 def send2all(bot, update):
 
@@ -697,6 +726,7 @@ def send2all(bot, update):
 # =========================================
 # send2admin - send message to all admins
 # =========================================
+@block_group
 @restricted
 def send2admin(bot, update):
 
@@ -727,6 +757,7 @@ def send2admin(bot, update):
 # =========================================
 # unknown - catch any wrong command
 # =========================================
+@block_group
 def unknown(bot, update):
     bot.send_message(chat_id=update.message.chat_id, text="Sorry, I didn't understand that command.")
 
