@@ -877,7 +877,7 @@ def unknown(update, context):
 # =========================================
 def main():
     # set TOKEN and initialization
-    fname = './admin_only/MeaninglessBot_token.txt'
+    fname = './admin_only/SpicePyBot_token.txt'
     updater = Updater(token=read_token(fname), use_context=True)
     dispatcher = updater.dispatcher
 
