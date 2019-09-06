@@ -10,6 +10,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
+from threading import Thread
 
 # ===================
 # module from SpicePy
@@ -79,23 +80,37 @@ OtherLog.addHandler(h3)
 # The following function reads the TOKEN from a file.
 # This file is not incuded in the github-repo for obvious reasons
 def read_token(filename):
+    """
+    'read_token' reads the bot token from a text file.
+
+    :param filename: filename of the file including the token
+    :return: string with the token
+    """
     with open(filename) as f:
         token = f.readline().replace('\n', '')
     return token
 
 
 # error_callback to log uncaught error
-def error_callback(bot, update, error):
-    OtherLog.error("Update {} caused error {}".format(update, error))
+def error_callback(update, context):
+    """
+    'error_callback' log uncaught error
+
+    :param update: bot update
+    :param context: CallbackContext
+    :return: None
+    """
+    OtherLog.error("Update {} caused error {}".format(update, context.error))
 
 
 # compute the solution
-def get_solution(fname, bot, update):
+def get_solution(fname, update, context):
     """
     'get_solution' computes the solution of a network using SpicePy
 
     :param fname: filename with the netlist
-    :param update: Bot updater
+    :param update: bot update
+    :param context: CallbackContext
     :return:
         * mex:  solution formatted in a string
     """
@@ -127,7 +142,7 @@ def get_solution(fname, bot, update):
                     mex += "`.tran " + net.analysis[1] + " " + net.analysis[-1] + "`"
 
 
-                    bot.send_message(chat_id=update.message.chat_id,
+                    context.bot.send_message(chat_id=update.message.chat_id,
                                      text=mex,
                                      parse_mode=telegram.ParseMode.MARKDOWN)
 
@@ -152,7 +167,7 @@ def get_solution(fname, bot, update):
                         mex += "original analysis: " + old_analysys + "\n"
                         mex += "ner analysis: " + new_analysys + "\n"
 
-                        bot.send_message(chat_id=update.message.chat_id,
+                        context.bot.send_message(chat_id=update.message.chat_id,
                                          text=mex,
                                          parse_mode=telegram.ParseMode.MARKDOWN)
 
@@ -248,14 +263,20 @@ def get_solution(fname, bot, update):
 # restriction decorator
 # ==========================
 def restricted(func):
+    """
+    'restricted' decorates a function so that it can be used only to allowed users
+
+    :param func: function to be decorated
+    :return: function wrapper
+    """
     @wraps(func)
-    def wrapped(bot, update, *args, **kwargs):
+    def wrapped(update, context, *args, **kwargs):
         user_id = update.effective_user.id
         if user_id not in LIST_OF_ADMINS:
             print("Unauthorized access denied for {}.".format(user_id))
-            bot.send_message(chat_id=update.message.chat_id, text="You are not authorized to run this command")
+            context.bot.send_message(chat_id=update.message.chat_id, text="You are not authorized to run this command")
             return
-        return func(bot, update, *args, **kwargs)
+        return func(update, context, *args, **kwargs)
     return wrapped
 
 
@@ -263,16 +284,22 @@ def restricted(func):
 # block group decorator
 # ==========================
 def block_group(func):
+    """
+    'block_group' decorates functions so that they can't be used in telegram groups
+
+    :param func: function to be decorated
+    :return: function wrapper
+    """
     @wraps(func)
-    def wrapped(bot, update, *args, **kwargs):
+    def wrapped(update, context, *args, **kwargs):
         # skip requests from groups
         if update.message.chat_id < 0:
             mex = "This bot is for personal use only.\n"
             mex += "*Please remove it from this group*\n"
-            bot.send_message(chat_id=update.message.chat_id, text=mex,
+            context.bot.send_message(chat_id=update.message.chat_id, text=mex,
                              parse_mode=telegram.ParseMode.MARKDOWN, disable_web_page_preview=True)
             return
-        return func(bot, update, *args, **kwargs)
+        return func(update, context, *args, **kwargs)
     return wrapped
 
 
@@ -280,7 +307,14 @@ def block_group(func):
 # start - welcome message
 # ==========================
 @block_group
-def start(bot, update):
+def start(update, context):
+    """
+    'start' provides the start message
+
+    :param update: bot update
+    :param context: CallbackContext
+    :return: None
+    """
     msg = "*Welcome to SpicePyBot*.\n\n"
     msg += "It allows you to solve linear:\n"
     msg += "  \* DC networks (.op)\n"
@@ -292,7 +326,7 @@ def start(bot, update):
     msg += "Read the full [tutorial](https://github.com/giaccone/SpicePyBot/wiki) if "
     msg += "you are completely new to this subject."
 
-    bot.send_message(chat_id=update.message.chat_id,
+    context.bot.send_message(chat_id=update.message.chat_id,
                      text=msg,
                      parse_mode=telegram.ParseMode.MARKDOWN, disable_web_page_preview=True)
     fname = './users/' + str(update.message.chat_id) + '.cnf'
@@ -307,7 +341,14 @@ def start(bot, update):
 # catch netlist from a file sent to the bot
 # =========================================
 @block_group
-def catch_netlist(bot, update):
+def catch_netlist(update, context):
+    """
+    'catch_netlist' get a netlist in a text file and provide the results.
+
+    :param update: bot update
+    :param context: CallbackContext
+    :return: None
+    """
 
     # if current user don't have cnf file create it
     if not os.path.exists('./users/' + str(update.message.chat_id) + '.cnf'):
@@ -319,7 +360,7 @@ def catch_netlist(bot, update):
         fid.close()
 
     # catch the netlist from file
-    file = bot.getFile(update.message.document.file_id)
+    file = context.bot.getFile(update.message.document.file_id)
     fname = './users/' + str(update.message.chat_id) + '.txt'
     file.download(fname)
 
@@ -328,26 +369,26 @@ def catch_netlist(bot, update):
     with open(fname) as f:
         for line in f:
             mex += line
-    bot.send_message(chat_id=update.message.chat_id, text=mex)
+    context.bot.send_message(chat_id=update.message.chat_id, text=mex)
 
     # compute solution
-    net, mex = get_solution(fname, bot, update)
+    net, mex = get_solution(fname, update, context)
 
     # typing
-    bot.send_chat_action(chat_id=update.message.chat_id, action=telegram.ChatAction.TYPING)
+    context.bot.send_chat_action(chat_id=update.message.chat_id, action=telegram.ChatAction.TYPING)
 
     if mex is None:    # in case of .tran or .ac-multi-freq mex is none, hence send the plot
         if net.analysis[0].lower() == '.tran':
-            bot.send_photo(chat_id=update.message.chat_id,
+            context.bot.send_photo(chat_id=update.message.chat_id,
                            photo=open('./users/tran_plot_' + str(update.message.chat_id) + '.png', 'rb'))
         elif net.analysis[0].lower() == '.ac':
             N = int(len(net.tf_cmd.split()[1:]) / 2)
             if N == 1:
-                bot.send_photo(chat_id=update.message.chat_id,
+                context.bot.send_photo(chat_id=update.message.chat_id,
                                photo=open('./users/bode_plot_' + str(update.message.chat_id) + '.png', 'rb'))
             else:
                 for k in range(N):
-                    bot.send_photo(chat_id=update.message.chat_id,
+                    context.bot.send_photo(chat_id=update.message.chat_id,
                                    photo=open(
                                        './users/bode_plot_' + str(update.message.chat_id) + '_' + str(k) + '.png',
                                        'rb'))
@@ -355,7 +396,7 @@ def catch_netlist(bot, update):
     else:    # otherwise print results
         mex = 'Please remember that all components are analyzed with *passive sign convention*.\nHere you have  ' \
               '*the circuit solution*.\n\n' + mex
-        bot.send_message(chat_id=update.message.chat_id, text=mex,
+        context.bot.send_message(chat_id=update.message.chat_id, text=mex,
                          parse_mode=telegram.ParseMode.MARKDOWN, disable_web_page_preview=True)
 
 
@@ -363,7 +404,14 @@ def catch_netlist(bot, update):
 # help - short guide
 # ==========================
 @block_group
-def help(bot, update):
+def help(update, context):
+    """
+    'help' provides information about the use of the bot
+
+    :param update: bot update
+    :param context: CallbackContext
+    :return: None
+    """
     msg = "*Very short guide*.\n\n" #1)upload a file with the netlist (don't know what a netlist is? Run `/tutorial` in the bot)\n2) enjoy\n\n\n*If you need a more detailed guide*\nRun `/tutorial` in the bot"
     msg += "The Bot makes use of netlists to describe circuits. If you do not know what "
     msg += "a netlist is, please refer to  SpicePy "
@@ -376,7 +424,7 @@ def help(bot, update):
     msg += "*Finally*\n"
     msg += "read the full [tutorial](https://github.com/giaccone/SpicePyBot/wiki) if "
     msg += "you are completely new to this subject."
-    bot.send_message(chat_id=update.message.chat_id,
+    context.bot.send_message(chat_id=update.message.chat_id,
                      text=msg,
                      parse_mode=telegram.ParseMode.MARKDOWN, disable_web_page_preview=True)
 
@@ -385,7 +433,14 @@ def help(bot, update):
 # netlist - write te netlist in the BOT
 # =========================================
 @block_group
-def netlist(bot, update):
+def netlist(update, context):
+    """
+    'netlist' tell to the bot that the used intend to send a netlist via text message
+
+    :param update: bot update
+    :param context: CallbackContext
+    :return: None
+    """
 
     # if current user don't have cnf file create it
     if not os.path.exists('./users/' + str(update.message.chat_id) + '.cnf'):
@@ -397,14 +452,22 @@ def netlist(bot, update):
         fid.close()
 
     open("./users/" + str(update.message.chat_id) + "_waitnetlist", 'w').close()
-    bot.send_message(chat_id=update.message.chat_id, text="Please write the netlist\nAll in one message.")
+    context.bot.send_message(chat_id=update.message.chat_id, text="Please write the netlist\nAll in one message.")
 
 
 # =========================================
 # reply - catch any message and reply to it
 # =========================================
 @block_group
-def reply(bot, update):
+def reply(update, context):
+    """
+    'reply' provides the result to a netlist send via text message. If /netlist is not
+    used before sending the netlist, a funny message is sent.
+
+    :param update: bot update
+    :param context: CallbackContext
+    :return: None
+    """
     # check call to /netlist
     if os.path.exists("./users/" + str(update.message.chat_id) + "_waitnetlist"):
         # write the netlist
@@ -421,26 +484,26 @@ def reply(bot, update):
         with open(fname) as f:
             for line in f:
                 mex += line
-        bot.send_message(chat_id=update.message.chat_id, text=mex)
+        context.bot.send_message(chat_id=update.message.chat_id, text=mex)
 
         # compute solution
-        net, mex = get_solution(fname, bot, update)
+        net, mex = get_solution(fname, update, context)
 
         # typing
-        bot.send_chat_action(chat_id=update.message.chat_id, action=telegram.ChatAction.TYPING)
+        context.bot.send_chat_action(chat_id=update.message.chat_id, action=telegram.ChatAction.TYPING)
 
         if mex is None:  # in case of .tran or .ac-multi-freq mex is none, hence send the plot
             if net.analysis[0].lower() == '.tran':
-                bot.send_photo(chat_id=update.message.chat_id,
+                context.bot.send_photo(chat_id=update.message.chat_id,
                                photo=open('./users/tran_plot_' + str(update.message.chat_id) + '.png', 'rb'))
             elif net.analysis[0].lower() == '.ac':
                 N = int(len(net.tf_cmd.split()[1:]) / 2)
                 if N == 1:
-                    bot.send_photo(chat_id=update.message.chat_id,
+                    context.bot.send_photo(chat_id=update.message.chat_id,
                                    photo=open('./users/bode_plot_' + str(update.message.chat_id) + '.png', 'rb'))
                 else:
                     for k in range(N):
-                        bot.send_photo(chat_id=update.message.chat_id,
+                        context.bot.send_photo(chat_id=update.message.chat_id,
                                        photo=open(
                                            './users/bode_plot_' + str(update.message.chat_id) + '_' + str(k) + '.png',
                                            'rb'))
@@ -448,7 +511,7 @@ def reply(bot, update):
         else:    # otherwise print results
             mex = 'Please remember that all components are analyzed with *passive sign convention*.\nHere you have  ' \
                   '*the circuit solution*.\n\n' + mex
-            bot.send_message(chat_id=update.message.chat_id, text=mex,
+            context.bot.send_message(chat_id=update.message.chat_id, text=mex,
                              parse_mode=telegram.ParseMode.MARKDOWN)
 
     else:    # ironic answer if the user send a random mesage to the Bot
@@ -460,7 +523,15 @@ def reply(bot, update):
 # complex_repr - toggle polar/cartesian
 # =========================================
 @block_group
-def complex_repr(bot, update):
+def complex_repr(update, context):
+    """
+    'complex_repr' switch from cartesian to polar representation for a complex number
+
+    :param update: bot update
+    :param context: CallbackContext
+    :return: None
+    """
+
     if os.path.exists('./users/' + str(update.message.chat_id) + '.cnf'):
         # get configurations
         fname = './users/' + str(update.message.chat_id) + '.cnf'
@@ -491,16 +562,23 @@ def complex_repr(bot, update):
 
     # notify user
     if polar:
-        bot.send_message(chat_id=update.message.chat_id, text="Switched to cartesian representation")
+        context.bot.send_message(chat_id=update.message.chat_id, text="Switched to cartesian representation")
     else:
-        bot.send_message(chat_id=update.message.chat_id, text="Switched to polar representation")
+        context.bot.send_message(chat_id=update.message.chat_id, text="Switched to polar representation")
 
 
 # =========================================
 # nodal_pot - toggle node potentials in output
 # =========================================
 @block_group
-def nodal_pot(bot, update):
+def nodal_pot(update, context):
+    """
+    'nodal_pot' enable/disable node potentials in the results
+
+    :param update: bot update
+    :param context: CallbackContext
+    :return: None
+    """
 
     if os.path.exists('./users/' + str(update.message.chat_id) + '.cnf'):
         # get configurations
@@ -533,16 +611,23 @@ def nodal_pot(bot, update):
 
     # notify user
     if nodal_pot:
-        bot.send_message(chat_id=update.message.chat_id, text="Node potentials removed from results")
+        context.bot.send_message(chat_id=update.message.chat_id, text="Node potentials removed from results")
     else:
-        bot.send_message(chat_id=update.message.chat_id, text="Node potentials included in results")
+        context.bot.send_message(chat_id=update.message.chat_id, text="Node potentials included in results")
 
 
 # =========================================
 # decibel - toggle decibel in bode plot
 # =========================================
 @block_group
-def decibel(bot, update):
+def decibel(update, context):
+    """
+    'decibel' enable/disable decibel representation in Bode plots
+
+    :param update: bot update
+    :param context: CallbackContext
+    :return: None
+    """
 
     if os.path.exists('./users/' + str(update.message.chat_id) + '.cnf'):
         # get configurations
@@ -575,20 +660,9 @@ def decibel(bot, update):
 
     # notify user
     if dB:
-        bot.send_message(chat_id=update.message.chat_id, text="bode plot: decibel disabled")
+        context.bot.send_message(chat_id=update.message.chat_id, text="bode plot: decibel disabled")
     else:
-        bot.send_message(chat_id=update.message.chat_id, text="bode plot: decibel enabled")
-
-
-# =========================================
-# restart - restart the BOT
-# =========================================
-@block_group
-@restricted
-def restart(bot, update):
-    bot.send_message(update.message.chat_id, "Bot is restarting...")
-    time.sleep(0.2)
-    os.execl(sys.executable, sys.executable, *sys.argv)
+        context.bot.send_message(chat_id=update.message.chat_id, text="bode plot: decibel enabled")
 
 
 # =========================================
@@ -596,9 +670,17 @@ def restart(bot, update):
 # =========================================
 @block_group
 @restricted
-def log(bot, update):
-    bot.send_document(chat_id=update.message.chat_id, document=open('./SolverLog.log', 'rb'))
-    bot.send_document(chat_id=update.message.chat_id, document=open('./OtherLog.log', 'rb'))
+def log(update, context):
+    """
+    'log' sends log files in the chat
+
+    :param update: bot update
+    :param context: CallbackContext
+    :return: None
+    """
+
+    context.bot.send_document(chat_id=update.message.chat_id, document=open('./SolverLog.log', 'rb'))
+    context.bot.send_document(chat_id=update.message.chat_id, document=open('./OtherLog.log', 'rb'))
 
 
 # =========================================
@@ -606,8 +688,15 @@ def log(bot, update):
 # =========================================
 @block_group
 @restricted
-def stat(bot, update):
-    bot.send_document(chat_id=update.message.chat_id, document=open('./StatBot.log', 'rb'))
+def stat(update, context):
+    """
+    'stat' computes statistical information about the bot use
+
+    :param update: bot update
+    :param context: CallbackContext
+    :return: None
+    """
+    context.bot.send_document(chat_id=update.message.chat_id, document=open('./StatBot.log', 'rb'))
 
     # initialize list
     analysis = []
@@ -644,7 +733,7 @@ def stat(bot, update):
     mex += '    *.ac*: {:.2f} %\n'.format(x[1] / np.sum(x) * 100)
     mex += '    *.tran*: {:.2f} %\n'.format(x[2] / np.sum(x) * 100)
 
-    bot.send_message(chat_id=update.message.chat_id, text=mex,
+    context.bot.send_message(chat_id=update.message.chat_id, text=mex,
                      parse_mode=telegram.ParseMode.MARKDOWN)
 
 
@@ -653,7 +742,14 @@ def stat(bot, update):
 # =========================================
 @block_group
 @restricted
-def send2all(bot, update):
+def send2all(update, context):
+    """
+    'send2all' sends a message to all users
+
+    :param update: bot update
+    :param context: CallbackContext
+    :return: None
+    """
 
     # read all users from StatBot.log
     user = []
@@ -690,7 +786,7 @@ def send2all(bot, update):
         chat_id = int(id)
         # try to send the message
         try:
-            bot.send_message(chat_id=chat_id,
+            context.bot.send_message(chat_id=chat_id,
                              text=msg,
                              parse_mode=telegram.ParseMode.MARKDOWN, disable_web_page_preview=True)
             cnt_sent += 1
@@ -714,7 +810,7 @@ def send2all(bot, update):
 
         # try to send the message
         try:
-            bot.send_message(chat_id=chat_id,
+            context.bot.send_message(chat_id=chat_id,
                              text=msg,
                              parse_mode=telegram.ParseMode.MARKDOWN, disable_web_page_preview=True)
 
@@ -728,7 +824,14 @@ def send2all(bot, update):
 # =========================================
 @block_group
 @restricted
-def send2admin(bot, update):
+def send2admin(update, context):
+    """
+    'send2admin' sends a message to all admins
+
+    :param update: bot update
+    :param context: CallbackContext
+    :return: None
+    """
 
     # get admin list
     fid = open('./admin_only/admin_list.txt', 'r')
@@ -745,7 +848,7 @@ def send2admin(bot, update):
         chat_id = int(id)
         # try to send the message
         try:
-            bot.send_message(chat_id=chat_id,
+            context.bot.send_message(chat_id=chat_id,
                              text=msg,
                              parse_mode=telegram.ParseMode.MARKDOWN, disable_web_page_preview=True)
 
@@ -758,8 +861,15 @@ def send2admin(bot, update):
 # unknown - catch any wrong command
 # =========================================
 @block_group
-def unknown(bot, update):
-    bot.send_message(chat_id=update.message.chat_id, text="Sorry, I didn't understand that command.")
+def unknown(update, context):
+    """
+    'unknown' catch unknown commands
+
+    :param update: bot update
+    :param context: CallbackContext
+    :return: None
+    """
+    context.bot.send_message(chat_id=update.message.chat_id, text="Sorry, I didn't understand that command.")
 
 
 # =========================================
@@ -767,9 +877,25 @@ def unknown(bot, update):
 # =========================================
 def main():
     # set TOKEN and initialization
-    fname = './admin_only/SpicePyBot_token.txt'
-    updater = Updater(token=read_token(fname))
+    fname = './admin_only/MeaninglessBot_token.txt'
+    updater = Updater(token=read_token(fname), use_context=True)
     dispatcher = updater.dispatcher
+
+    # restart - restart the BOT
+    # -------------------------
+    def stop_and_restart():
+        """Gracefully stop the Updater and replace the current process with a new one"""
+        updater.stop()
+        os.execl(sys.executable, sys.executable, *sys.argv)
+
+    @block_group
+    @restricted
+    def restart(update, context):
+        update.message.reply_text('Bot is restarting...')
+        Thread(target=stop_and_restart).start()
+
+    # /r - restart the bot
+    dispatcher.add_handler(CommandHandler('r', restart))
 
     # /start handler
     start_handler = CommandHandler('start', start)
@@ -801,9 +927,6 @@ def main():
     # /decibel handler
     decibel_handler = CommandHandler('decibel', decibel)
     dispatcher.add_handler(decibel_handler)
-
-    # /r - restart the bot
-    dispatcher.add_handler(CommandHandler('r', restart))
 
     # /log - get log file
     dispatcher.add_handler(CommandHandler('log', log))
