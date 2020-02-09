@@ -912,10 +912,6 @@ def main():
     netlist_handler = CommandHandler('netlist', netlist)
     dispatcher.add_handler(netlist_handler)
 
-    # reply to random message or get netlist after /netlist
-    reply_handler = MessageHandler(Filters.text, reply)
-    dispatcher.add_handler(reply_handler)
-
     # /complex_repr handler
     complex_repr_handler = CommandHandler('complex_repr', complex_repr)
     dispatcher.add_handler(complex_repr_handler)
@@ -943,6 +939,10 @@ def main():
     # reply to unknown commands
     unknown_handler = MessageHandler(Filters.command, unknown)
     dispatcher.add_handler(unknown_handler)
+
+    # reply to random message or get netlist after /netlist
+    reply_handler = MessageHandler(Filters.text, reply)
+    dispatcher.add_handler(reply_handler)
 
     # log every uncaught error with error handler
     dispatcher.add_error_handler(error_callback)
