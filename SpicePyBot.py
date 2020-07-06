@@ -856,6 +856,61 @@ def send2admin(update, context):
         except telegram.error.TelegramError:
             pass
 
+# =========================================
+# who - retrieve user info from user id
+# =========================================
+@block_group
+@restricted
+def who(update, context):
+    """
+    'who' retreive user info from user id
+
+    :param update: bot update
+    :param context: CallbackContext
+    :return: None
+    """
+    # get admin list (to send them user info)
+    fid = open('./admin_only/admin_list.txt', 'r')
+    ADMIN_LIST = [int(adm) for adm in fid.readline().split()]
+    fid.close()
+    
+    # get user id provided with the command
+    userID = int(update.message.text.replace('/who ','').strip())
+
+    # get and send data
+    try:
+        # try to get data
+        chat = context.bot.get_chat(chat_id=userID)
+        # build messagge                                                                                                       update.message.from_user.last_name)
+        msg = "results for userID {}:\n  * username: @{}\n  * first name: {}\n  * last name: {}\n\n".format(userID,
+                                                                                        chat.username,
+                                                                                        chat.first_name,
+                                                                                        chat.last_name)
+        # check if user has profile picture
+        if hasattr(chat.photo, 'small_file_id'):
+            photo = True
+        else:
+            photo = False
+            msg += "\n\n The user has no profile picture."
+
+        # send information
+        for admin in ADMIN_LIST:
+            admin_id = int(admin)
+            context.bot.send_message(chat_id=admin_id, text=msg)
+            if photo:
+                file = context.bot.getFile(chat.photo.small_file_id)
+                fname = './users/propic.png'
+                file.download(fname)
+                context.bot.send_photo(chat_id=admin_id, photo=open('./users/propic.png', 'rb'))
+                os.remove('./users/propic.png')    
+            
+
+    # send message when user if not found
+    except telegram.TelegramError:
+        msg += "\n\nuser {} not found".format(userID)
+        for admin in ADMIN_LIST:
+            admin_id = int(admin)
+            context.bot.send_message(chat_id=admin_id, text=msg)
 
 # =========================================
 # unknown - catch any wrong command
@@ -935,6 +990,9 @@ def main():
 
     # /send2admin - send message to all admins
     dispatcher.add_handler(CommandHandler('send2admin', send2admin))
+
+    # /who - retrieve user info from id
+    dispatcher.add_handler(CommandHandler('who', who))
 
     # reply to unknown commands
     unknown_handler = MessageHandler(Filters.command, unknown)
