@@ -15,8 +15,8 @@ from threading import Thread
 # ===================
 # module from SpicePy
 # ===================
-import netlist as ntl
-from netsolve import net_solve
+import spicepy.netlist as ntl
+from spicepy.netsolve import net_solve
 
 # ==========================
 # python-temegam-bot modules
