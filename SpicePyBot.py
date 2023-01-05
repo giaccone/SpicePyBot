@@ -13,6 +13,10 @@ import numpy as np
 from threading import Thread
 # token and list of admin
 from config import LIST_OF_ADMINS, TOKEN
+# import commands
+import commands as cmd
+# to be removed
+from utils.decorators import restricted, block_group
 
 # ===================
 # module from SpicePy
@@ -237,84 +241,6 @@ def get_solution(fname, update, context):
         return net, "*Something went wrong with your netlist*.\nPlease check the netlist format."
 
 
-# ==========================
-# restriction decorator
-# ==========================
-def restricted(func):
-    """
-    'restricted' decorates a function so that it can be used only to allowed users
-
-    :param func: function to be decorated
-    :return: function wrapper
-    """
-    @wraps(func)
-    def wrapped(update, context, *args, **kwargs):
-        user_id = update.effective_user.id
-        if user_id not in LIST_OF_ADMINS:
-            print("Unauthorized access denied for {}.".format(user_id))
-            context.bot.send_message(chat_id=update.message.chat_id, text="You are not authorized to run this command")
-            return
-        return func(update, context, *args, **kwargs)
-    return wrapped
-
-
-# ==========================
-# block group decorator
-# ==========================
-def block_group(func):
-    """
-    'block_group' decorates functions so that they can't be used in telegram groups
-
-    :param func: function to be decorated
-    :return: function wrapper
-    """
-    @wraps(func)
-    def wrapped(update, context, *args, **kwargs):
-        # skip requests from groups
-        if update.message.chat_id < 0:
-            mex = "This bot is for personal use only.\n"
-            mex += "*Please remove it from this group*\n"
-            context.bot.send_message(chat_id=update.message.chat_id, text=mex,
-                             parse_mode=telegram.ParseMode.MARKDOWN, disable_web_page_preview=True)
-            return
-        return func(update, context, *args, **kwargs)
-    return wrapped
-
-
-# ==========================
-# start - welcome message
-# ==========================
-@block_group
-def start(update, context):
-    """
-    'start' provides the start message
-
-    :param update: bot update
-    :param context: CallbackContext
-    :return: None
-    """
-    msg = "*Welcome to SpicePyBot*.\n\n"
-    msg += "It allows you to solve linear:\n"
-    msg += "  \* DC networks (.op)\n"
-    msg += "  \* AC networks (.ac)\n"
-    msg += "  \* dynamic networks (.tran)\n\n"
-    msg += "Run the code:\n"
-    msg += "`/help`:  to have a short guide.\n\n"
-    msg += "or\n\n"
-    msg += "Read the full [tutorial](https://github.com/giaccone/SpicePyBot/wiki) if "
-    msg += "you are completely new to this subject."
-
-    context.bot.send_message(chat_id=update.message.chat_id,
-                     text=msg,
-                     parse_mode=telegram.ParseMode.MARKDOWN, disable_web_page_preview=True)
-    fname = './users/' + str(update.message.chat_id) + '.cnf'
-    fid = open(fname, 'w')
-    fid.write('False\n')  # this is for the node potential
-    fid.write('False\n')  # this is for the polar flag
-    fid.write('False')    # this is for the decibel flag
-    fid.close()
-
-
 # =========================================
 # catch netlist from a file sent to the bot
 # =========================================
@@ -376,61 +302,6 @@ def catch_netlist(update, context):
               '*the circuit solution*.\n\n' + mex
         context.bot.send_message(chat_id=update.message.chat_id, text=mex,
                          parse_mode=telegram.ParseMode.MARKDOWN, disable_web_page_preview=True)
-
-
-# ==========================
-# help - short guide
-# ==========================
-@block_group
-def help(update, context):
-    """
-    'help' provides information about the use of the bot
-
-    :param update: bot update
-    :param context: CallbackContext
-    :return: None
-    """
-    msg = "*Very short guide*.\n\n" #1)upload a file with the netlist (don't know what a netlist is? Run `/tutorial` in the bot)\n2) enjoy\n\n\n*If you need a more detailed guide*\nRun `/tutorial` in the bot"
-    msg += "The Bot makes use of netlists to describe circuits. If you do not know what "
-    msg += "a netlist is, please refer to  SpicePy "
-    msg += "[documentation](https://github.com/giaccone/SpicePy/wiki/User's-guide)"
-    msg += " and [examples](https://github.com/giaccone/SpicePy/wiki/Examples).\n\n"
-    msg += "Assuming that you know how to describe a circuit by means of a netlist, you can either:\n\n"
-    msg += "1) use the command `/netlist` and write the netlist directly to the Bot (i.e. chatting with the BOT)\n\n"
-    msg += "or\n\n"
-    msg += "2) send a text file to the Bot including the netlist. The Bot will catch it and it'll solve it.\n\n"
-    msg += "*Finally*\n"
-    msg += "read the full [tutorial](https://github.com/giaccone/SpicePyBot/wiki) if "
-    msg += "you are completely new to this subject."
-    context.bot.send_message(chat_id=update.message.chat_id,
-                     text=msg,
-                     parse_mode=telegram.ParseMode.MARKDOWN, disable_web_page_preview=True)
-
-
-# =========================================
-# netlist - write te netlist in the BOT
-# =========================================
-@block_group
-def netlist(update, context):
-    """
-    'netlist' tell to the bot that the used intend to send a netlist via text message
-
-    :param update: bot update
-    :param context: CallbackContext
-    :return: None
-    """
-
-    # if current user don't have cnf file create it
-    if not os.path.exists('./users/' + str(update.message.chat_id) + '.cnf'):
-        fname = './users/' + str(update.message.chat_id) + '.cnf'
-        fid = open(fname, 'w')
-        fid.write('False\n')  # this is for the node potential
-        fid.write('False\n')  # this is for the polar flag
-        fid.write('False')    # this is for the decibel flag
-        fid.close()
-
-    open("./users/" + str(update.message.chat_id) + "_waitnetlist", 'w').close()
-    context.bot.send_message(chat_id=update.message.chat_id, text="Please write the netlist\nAll in one message.")
 
 
 # =========================================
@@ -496,151 +367,6 @@ def reply(update, context):
         update.message.reply_text("Come on! We are here to solve circuits and not to chat! 😀\n"
                                   "Please provide me a netlist.", quote=True)
 
-
-# =========================================
-# complex_repr - toggle polar/cartesian
-# =========================================
-@block_group
-def complex_repr(update, context):
-    """
-    'complex_repr' switch from cartesian to polar representation for a complex number
-
-    :param update: bot update
-    :param context: CallbackContext
-    :return: None
-    """
-
-    if os.path.exists('./users/' + str(update.message.chat_id) + '.cnf'):
-        # get configurations
-        fname = './users/' + str(update.message.chat_id) + '.cnf'
-        fid = open(fname, 'r')
-        flag = fid.readline()[:-1]  # read nodal_pot conf
-        nodal_pot = flag == 'True'
-        flag = fid.readline()[:-1]  # read polar conf
-        polar = flag == 'True'
-        flag = fid.readline()  # read dB conf
-        dB = flag == 'True'
-
-        # keep nodal pot and toggle polar
-        fname = './users/' + str(update.message.chat_id) + '.cnf'
-        fid = open(fname, 'w')
-        fid.write(str(nodal_pot) + '\n')
-        fid.write(str(not polar) + '\n')
-        fid.write(str(dB))
-        fid.close()
-    else:
-        polar = False
-        # Initialize config file with polar = True (everything else False)
-        fname = './users/' + str(update.message.chat_id) + '.cnf'
-        fid = open(fname, 'w')
-        fid.write('False\n')  # this is for the node potential
-        fid.write(str(not polar) + '\n')  # this is for the polar flag
-        fid.write('False')  # this is for the decibel flag
-        fid.close()
-
-    # notify user
-    if polar:
-        context.bot.send_message(chat_id=update.message.chat_id, text="Switched to cartesian representation")
-    else:
-        context.bot.send_message(chat_id=update.message.chat_id, text="Switched to polar representation")
-
-
-# =========================================
-# nodal_pot - toggle node potentials in output
-# =========================================
-@block_group
-def nodal_pot(update, context):
-    """
-    'nodal_pot' enable/disable node potentials in the results
-
-    :param update: bot update
-    :param context: CallbackContext
-    :return: None
-    """
-
-    if os.path.exists('./users/' + str(update.message.chat_id) + '.cnf'):
-        # get configurations
-        fname = './users/' + str(update.message.chat_id) + '.cnf'
-        fid = open(fname, 'r')
-        flag = fid.readline()[:-1]  # read nodal_pot conf
-        nodal_pot = flag == 'True'
-        flag = fid.readline()[:-1]  # read polar conf
-        polar = flag == 'True'
-        flag = fid.readline()  # read dB conf
-        dB = flag == 'True'
-
-        # switch nodal pot keep polar
-        fname = './users/' + str(update.message.chat_id) + '.cnf'
-        fid = open(fname, 'w')
-        fid.write(str(not nodal_pot) + '\n')
-        fid.write(str(polar) + '\n')
-        fid.write(str(dB))
-        fid.close()
-    else:
-        nodal_pot = False
-
-        # Initialize config file with nodal_pot = True (everything else False)
-        fname = './users/' + str(update.message.chat_id) + '.cnf'
-        fid = open(fname, 'w')
-        fid.write(str(not nodal_pot) + '\n')   # this is for the node potential
-        fid.write('False\n')   # this is for the polar flag
-        fid.write('False')  # this is for the decibel flag
-        fid.close()
-
-    # notify user
-    if nodal_pot:
-        context.bot.send_message(chat_id=update.message.chat_id, text="Node potentials removed from results")
-    else:
-        context.bot.send_message(chat_id=update.message.chat_id, text="Node potentials included in results")
-
-
-# =========================================
-# decibel - toggle decibel in bode plot
-# =========================================
-@block_group
-def decibel(update, context):
-    """
-    'decibel' enable/disable decibel representation in Bode plots
-
-    :param update: bot update
-    :param context: CallbackContext
-    :return: None
-    """
-
-    if os.path.exists('./users/' + str(update.message.chat_id) + '.cnf'):
-        # get configurations
-        fname = './users/' + str(update.message.chat_id) + '.cnf'
-        fid = open(fname, 'r')
-        flag = fid.readline()[:-1]  # read nodal_pot conf
-        nodal_pot = flag == 'True'
-        flag = fid.readline()[:-1]  # read polar conf
-        polar = flag == 'True'
-        flag = fid.readline()  # read dB conf
-        dB = flag == 'True'
-
-        # switch nodal pot keep polar
-        fname = './users/' + str(update.message.chat_id) + '.cnf'
-        fid = open(fname, 'w')
-        fid.write(str(nodal_pot) + '\n')
-        fid.write(str(polar) + '\n')
-        fid.write(str(not dB))
-        fid.close()
-    else:
-        dB = False
-
-        # Initialize config file with dB = True (everything else False)
-        fname = './users/' + str(update.message.chat_id) + '.cnf'
-        fid = open(fname, 'w')
-        fid.write('False\n')   # this is for the node potential
-        fid.write('False\n')   # this is for the polar flag
-        fid.write(str(not dB))  # this is for the decibel flag
-        fid.close()
-
-    # notify user
-    if dB:
-        context.bot.send_message(chat_id=update.message.chat_id, text="bode plot: decibel disabled")
-    else:
-        context.bot.send_message(chat_id=update.message.chat_id, text="bode plot: decibel enabled")
 
 
 # =========================================
@@ -930,30 +656,30 @@ def main():
     dispatcher.add_handler(CommandHandler('r', restart))
 
     # /start handler
-    start_handler = CommandHandler('start', start)
+    start_handler = CommandHandler('start', cmd.start.execute)
     dispatcher.add_handler(start_handler)
 
     # catch netlist when sent to the BOT
     dispatcher.add_handler(MessageHandler(Filters.document, catch_netlist))
 
     # /help handler
-    help_handler = CommandHandler('help', help)
+    help_handler = CommandHandler('help', cmd.help.execute)
     dispatcher.add_handler(help_handler)
 
     # /netlist handler
-    netlist_handler = CommandHandler('netlist', netlist)
+    netlist_handler = CommandHandler('netlist', cmd.netlist.execute)
     dispatcher.add_handler(netlist_handler)
 
     # /complex_repr handler
-    complex_repr_handler = CommandHandler('complex_repr', complex_repr)
+    complex_repr_handler = CommandHandler('complex_repr', cmd.complex_repr.execute)
     dispatcher.add_handler(complex_repr_handler)
 
     # /nodal_pot handler
-    nodal_pot_handler = CommandHandler('nodal_pot', nodal_pot)
+    nodal_pot_handler = CommandHandler('nodal_pot', cmd.nodal_pot.execute)
     dispatcher.add_handler(nodal_pot_handler)
 
     # /decibel handler
-    decibel_handler = CommandHandler('decibel', decibel)
+    decibel_handler = CommandHandler('decibel', cmd.decibel.execute)
     dispatcher.add_handler(decibel_handler)
 
     # /log - get log file
