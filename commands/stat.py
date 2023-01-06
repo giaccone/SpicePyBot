@@ -1,14 +1,14 @@
 from utils.decorators import block_group, restricted
 import numpy as np
 from config import LIST_OF_ADMINS
-from telegram import ParseMode
+from telegram.constants import ParseMode
 
 # =========================================
 # stat - get stat
 # =========================================
 @block_group
 @restricted
-def execute(update, context):
+async def execute(update, context):
     """
     'stat' computes statistical information about the bot use
 
@@ -16,7 +16,7 @@ def execute(update, context):
     :param context: CallbackContext
     :return: None
     """
-    context.bot.send_document(chat_id=update.message.chat_id, document=open('./StatBot.log', 'rb'))
+    await context.bot.send_document(chat_id=update.message.chat_id, document=open('./StatBot.log', 'rb'))
 
     # initialize list
     analysis = []
@@ -49,5 +49,5 @@ def execute(update, context):
     mex += '    *.ac*: {:.2f} %\n'.format(x[1] / np.sum(x) * 100)
     mex += '    *.tran*: {:.2f} %\n'.format(x[2] / np.sum(x) * 100)
 
-    context.bot.send_message(chat_id=update.message.chat_id, text=mex,
+    await context.bot.send_message(chat_id=update.message.chat_id, text=mex,
                      parse_mode=ParseMode.MARKDOWN)

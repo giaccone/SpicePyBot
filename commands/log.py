@@ -5,7 +5,7 @@ from utils.decorators import block_group, restricted
 # =========================================
 @block_group
 @restricted
-def execute(update, context):
+async def execute(update, context):
     """
     'log' sends log files in the chat
 
@@ -14,5 +14,5 @@ def execute(update, context):
     :return: None
     """
 
-    context.bot.send_document(chat_id=update.message.chat_id, document=open('./SolverLog.log', 'rb'))
-    context.bot.send_document(chat_id=update.message.chat_id, document=open('./OtherLog.log', 'rb'))
+    await context.bot.send_document(chat_id=update.message.chat_id, document=open('./SolverLog.log', 'rb'))
+    await context.bot.send_document(chat_id=update.message.chat_id, document=open('./OtherLog.log', 'rb'))

@@ -9,7 +9,7 @@ from telegram.error import TelegramError
 # =========================================
 @block_group
 @restricted
-def execute(update, context):
+async def execute(update, context):
     """
     'who' retreive user info from user id
 
@@ -24,7 +24,7 @@ def execute(update, context):
     # get and send data
     try:
         # try to get data
-        chat = context.bot.get_chat(chat_id=userID)
+        chat = await context.bot.get_chat(chat_id=userID)
         # build messagge
         msg = "results for userID {}:\n  * username: @{}\n  * first name: {}\n  * last name: {}\n\n".format(userID,
                                                                                                             chat.username,
@@ -40,12 +40,12 @@ def execute(update, context):
         # send information
         for admin in LIST_OF_ADMINS:
             admin_id = int(admin)
-            context.bot.send_message(chat_id=admin_id, text=msg)
+            await context.bot.send_message(chat_id=admin_id, text=msg)
             if photo:
-                file = context.bot.getFile(chat.photo.small_file_id)
+                file = await context.bot.getFile(chat.photo.small_file_id)
                 fname = './users/propic.png'
-                file.download(fname)
-                context.bot.send_photo(chat_id=admin_id, photo=open('./users/propic.png', 'rb'))
+                await file.download_to_drive(fname)
+                await context.bot.send_photo(chat_id=admin_id, photo=open('./users/propic.png', 'rb'))
                 os.remove('./users/propic.png')
 
                 # send message when user if not found
@@ -53,4 +53,4 @@ def execute(update, context):
         msg += "\n\nuser {} not found".format(userID)
         for admin in LIST_OF_ADMINS:
             admin_id = int(admin)
-            context.bot.send_message(chat_id=admin_id, text=msg)
+            await context.bot.send_message(chat_id=admin_id, text=msg)

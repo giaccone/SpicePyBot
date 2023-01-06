@@ -1,7 +1,7 @@
 from utils.decorators import block_group, restricted
 import numpy as np
 from telegram.error import TelegramError
-from telegram import ParseMode
+from telegram.constants import ParseMode
 from config import LIST_OF_ADMINS
 import os
 
@@ -11,7 +11,7 @@ import os
 # =========================================
 @block_group
 @restricted
-def execute(update, context):
+async def execute(update, context):
     """
     'send2all' sends a message to all users
 
@@ -55,7 +55,7 @@ def execute(update, context):
         chat_id = int(id)
         # try to send the message
         try:
-            context.bot.send_message(chat_id=chat_id,
+            await context.bot.send_message(chat_id=chat_id,
                              text=msg,
                              parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True)
             cnt_sent += 1
@@ -74,7 +74,7 @@ def execute(update, context):
 
         # try to send the message
         try:
-            context.bot.send_message(chat_id=chat_id,
+            await context.bot.send_message(chat_id=chat_id,
                              text=msg,
                              parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True)
 

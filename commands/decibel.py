@@ -6,7 +6,7 @@ from utils.decorators import block_group
 # decibel - toggle decibel in bode plot
 # =========================================
 @block_group
-def execute(update, context):
+async def execute(update, context):
     """
     'decibel' enable/disable decibel representation in Bode plots
 
@@ -46,6 +46,6 @@ def execute(update, context):
 
     # notify user
     if dB:
-        context.bot.send_message(chat_id=update.message.chat_id, text="bode plot: decibel disabled")
+        await context.bot.send_message(chat_id=update.message.chat_id, text="bode plot: decibel disabled")
     else:
-        context.bot.send_message(chat_id=update.message.chat_id, text="bode plot: decibel enabled")
+        await context.bot.send_message(chat_id=update.message.chat_id, text="bode plot: decibel enabled")

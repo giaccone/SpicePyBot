@@ -1,6 +1,6 @@
 import spicepy.netlist as ntl
 from spicepy.netsolve import net_solve
-from telegram import ParseMode
+from telegram.constants import ParseMode
 import numpy as np
 import matplotlib.pyplot as plt
 import logging
@@ -9,7 +9,7 @@ matplotlib.use('Agg')
 
 
 # compute the solution
-def get_solution(fname, update, context):
+async def get_solution(fname, update, context):
     """
     'get_solution' computes the solution of a network using SpicePy
 
@@ -46,8 +46,7 @@ def get_solution(fname, update, context):
                     mex += "The analysis has been limited to *2000* samples:\n"
                     mex += "`.tran " + net.analysis[1] + " " + net.analysis[-1] + "`"
 
-
-                    context.bot.send_message(chat_id=update.message.chat_id,
+                    await context.bot.send_message(chat_id=update.message.chat_id,
                                      text=mex,
                                      parse_mode=ParseMode.MARKDOWN)
 
@@ -72,7 +71,7 @@ def get_solution(fname, update, context):
                         mex += "original analysis: " + old_analysys + "\n"
                         mex += "ner analysis: " + new_analysys + "\n"
 
-                        context.bot.send_message(chat_id=update.message.chat_id,
+                        await context.bot.send_message(chat_id=update.message.chat_id,
                                          text=mex,
                                          parse_mode=ParseMode.MARKDOWN)
 

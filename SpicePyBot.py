@@ -7,7 +7,8 @@ from config import TOKEN
 import commands as cmd
 import conversation as cnv
 # PTB modules
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from telegram.ext import ApplicationBuilder, CommandHandler
+from telegram.ext import MessageHandler, filters
 
 # ===============================
 # create necessary folders
@@ -15,10 +16,16 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 if not os.path.exists('users'):
     os.makedirs('users')
 
+# ===========
+# Define logs
+# ===========
+# basic (on shell)
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
 
-# ==========================
-# Logging
-# ==========================
+
 # define filter to log only one level
 class MyFilter(object):
     def __init__(self, level):
@@ -53,7 +60,7 @@ OtherLog.addHandler(h3)
 
 
 # error_callback to log uncaught error
-def error_callback(update, context):
+async def error_callback(update, context):
     """
     'error_callback' log uncaught error
 
@@ -64,73 +71,68 @@ def error_callback(update, context):
     OtherLog.error("Update {} caused error {}".format(update, context.error))
 
 
-# =========================================
+# ==========
 # bot - main
-# =========================================
+# ==========
 def main():
-    # set TOKEN and initialization
-    updater = Updater(token=TOKEN, use_context=True)
-    dispatcher = updater.dispatcher
+    # initialize bot
+    application = ApplicationBuilder().token(TOKEN).build()
 
     # /start handler
     start_handler = CommandHandler('start', cmd.start.execute)
-    dispatcher.add_handler(start_handler)
+    application.add_handler(start_handler)
 
     # catch netlist when sent to the BOT
-    dispatcher.add_handler(MessageHandler(Filters.document, cnv.catch_netlist.execute))
+    application.add_handler(MessageHandler(filters.Document.ALL, cnv.catch_netlist.execute))
 
     # /help handler
     help_handler = CommandHandler('help', cmd.help.execute)
-    dispatcher.add_handler(help_handler)
+    application.add_handler(help_handler)
 
     # /netlist handler
     netlist_handler = CommandHandler('netlist', cmd.netlist.execute)
-    dispatcher.add_handler(netlist_handler)
+    application.add_handler(netlist_handler)
 
     # /complex_repr handler
     complex_repr_handler = CommandHandler('complex_repr', cmd.complex_repr.execute)
-    dispatcher.add_handler(complex_repr_handler)
+    application.add_handler(complex_repr_handler)
 
     # /nodal_pot handler
     nodal_pot_handler = CommandHandler('nodal_pot', cmd.nodal_pot.execute)
-    dispatcher.add_handler(nodal_pot_handler)
+    application.add_handler(nodal_pot_handler)
 
     # /decibel handler
     decibel_handler = CommandHandler('decibel', cmd.decibel.execute)
-    dispatcher.add_handler(decibel_handler)
+    application.add_handler(decibel_handler)
 
     # /log - get log file
-    dispatcher.add_handler(CommandHandler('log', cmd.log.execute))
+    application.add_handler(CommandHandler('log', cmd.log.execute))
 
     # /stat - get stat file
-    dispatcher.add_handler(CommandHandler('stat', cmd.stat.execute))
+    application.add_handler(CommandHandler('stat', cmd.stat.execute))
 
     # /send2all - send message to all users
-    dispatcher.add_handler(CommandHandler('send2all', cmd.send2all.execute))
+    application.add_handler(CommandHandler('send2all', cmd.send2all.execute))
 
     # /send2admin - send message to all admins
-    dispatcher.add_handler(CommandHandler('send2admin', cmd.send2admin.execute))
+    application.add_handler(CommandHandler('send2admin', cmd.send2admin.execute))
 
     # /who - retrieve user info from id
-    dispatcher.add_handler(CommandHandler('who', cmd.who.execute))
+    application.add_handler(CommandHandler('who', cmd.who.execute))
 
-    # reply to unknown commands
-    unknown_handler = MessageHandler(Filters.command, cmd.unknown.execute)
-    dispatcher.add_handler(unknown_handler)
+    # catch unknown commands and notify the user
+    unknown_handler = MessageHandler(filters.COMMAND, cmd.unknown.execute)
+    application.add_handler(unknown_handler)
 
     # reply to random message or get netlist after /netlist
-    reply_handler = MessageHandler(Filters.text, cnv.reply.execute)
-    dispatcher.add_handler(reply_handler)
+    reply_handler = MessageHandler(filters.TEXT, cnv.reply.execute)
+    application.add_handler(reply_handler)
 
     # log every uncaught error with error handler
-    dispatcher.add_error_handler(error_callback)
+    application.add_error_handler(error_callback)
 
     # start the BOT
-    updater.start_polling()
-    # Block until you press Ctrl-C or the process receives SIGINT, SIGTERM or
-    # SIGABRT. This should be used most of the time, since start_polling() is
-    # non-blocking and will stop the bot gracefully.
-    updater.idle()
+    application.run_polling()
 
 
 if __name__ == '__main__':

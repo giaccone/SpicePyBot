@@ -6,7 +6,7 @@ from utils.decorators import block_group
 # nodal_pot - toggle node potentials in output
 # =========================================
 @block_group
-def execute(update, context):
+async def execute(update, context):
     """
     'nodal_pot' enable/disable node potentials in the results
 
@@ -46,6 +46,6 @@ def execute(update, context):
 
     # notify user
     if nodal_pot:
-        context.bot.send_message(chat_id=update.message.chat_id, text="Node potentials removed from results")
+        await context.bot.send_message(chat_id=update.message.chat_id, text="Node potentials removed from results")
     else:
-        context.bot.send_message(chat_id=update.message.chat_id, text="Node potentials included in results")
+        await context.bot.send_message(chat_id=update.message.chat_id, text="Node potentials included in results")

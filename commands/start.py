@@ -1,11 +1,12 @@
 from utils.decorators import block_group
-from telegram import ParseMode
+from telegram.constants import ParseMode
+
 
 # ==========================
 # start - welcome message
 # ==========================
 @block_group
-def execute(update, context):
+async def execute(update, context):
     """
     'start' provides the start message
 
@@ -24,9 +25,10 @@ def execute(update, context):
     msg += "Read the full [tutorial](https://github.com/giaccone/SpicePyBot/wiki) if "
     msg += "you are completely new to this subject."
 
-    context.bot.send_message(chat_id=update.message.chat_id,
+    await context.bot.send_message(chat_id=update.message.chat_id,
                      text=msg,
                      parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True)
+
     fname = './users/' + str(update.message.chat_id) + '.cnf'
     fid = open(fname, 'w')
     fid.write('False\n')  # this is for the node potential

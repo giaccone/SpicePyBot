@@ -6,7 +6,7 @@ from utils.decorators import block_group
 # complex_repr - toggle polar/cartesian
 # =========================================
 @block_group
-def execute(update, context):
+async def execute(update, context):
     """
     'complex_repr' switch from cartesian to polar representation for a complex number
 
@@ -45,6 +45,6 @@ def execute(update, context):
 
     # notify user
     if polar:
-        context.bot.send_message(chat_id=update.message.chat_id, text="Switched to cartesian representation")
+        await context.bot.send_message(chat_id=update.message.chat_id, text="Switched to cartesian representation")
     else:
-        context.bot.send_message(chat_id=update.message.chat_id, text="Switched to polar representation")
+        await context.bot.send_message(chat_id=update.message.chat_id, text="Switched to polar representation")
