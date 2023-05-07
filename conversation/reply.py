@@ -42,6 +42,11 @@ async def execute(update, context):
         await context.bot.send_chat_action(chat_id=update.message.chat_id, action=ChatAction.TYPING)
 
         if mex is None:  # in case of .tran or .ac-multi-freq mex is none, hence send the plot
+            mex = 'Please remember that all components are analyzed with *passive sign convention*.\nHere you have  ' \
+                  '*the circuit solution*.\n\n'
+            await context.bot.send_message(chat_id=update.message.chat_id, text=mex,
+                                           parse_mode=ParseMode.MARKDOWN)
+
             if net.analysis[0].lower() == '.tran':
                 await context.bot.send_photo(chat_id=update.message.chat_id,
                                photo=open('./users/tran_plot_' + str(update.message.chat_id) + '.png', 'rb'))
