@@ -10,6 +10,10 @@ import conversation as cnv
 from telegram.ext import ApplicationBuilder, CommandHandler
 from telegram.ext import MessageHandler, filters
 
+# set higher logging level for httpx to avoid all GET and POST requests being logged
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("apscheduler").setLevel(logging.WARNING)
+
 # ===============================
 # create necessary folders
 # ===============================
